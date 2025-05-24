@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - sql_alchemy
+
+  db:
+    image: postgres
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_DB: football
+    ports:
+      - "5432:5432"
+    volumes:
+      - footballdata:/var/lib/postgresql/data
+
+volumes:
+  footballdata:
