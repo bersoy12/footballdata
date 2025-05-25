@@ -1,3 +1,10 @@
 fastapi
 uvicorn
 psycopg2-binary
+undetected-chromedriver
+cloudscraper
+pandas
+sqlalchemy
+requests
+beautifulsoup4
+dotenv

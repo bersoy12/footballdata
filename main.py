@@ -21,7 +21,7 @@ def test(tournament_id: int = None,
     Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
     """
     # Veritabanı bağlantısını bir kere oluştur
-    # conn, cursor = connect_postgre("sofa")
+    # conn, cursor = connect_postgre("football")
     # if conn is None or cursor is None:
     #     print("Veritabanı bağlantısı kurulamadı!")
     #     return
@@ -172,7 +172,8 @@ def test(tournament_id: int = None,
 
 # if __name__ == "__main__":
 
-statistics, events, graphs, match_ids, game_stats, game_events, game_graphs = test(tournament_id=52, country_alpha='TR', season_id=63814, start_week=1, end_week=2)
+statistics, events, graphs, match_ids, game_stats, game_events, game_graphs = \
+        test(tournament_id=52, country_alpha='TR', season_id=63814, start_week=1, end_week=2)
 
 
 

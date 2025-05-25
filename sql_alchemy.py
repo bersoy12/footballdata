@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-engine = create_engine(os.getenv('SOFA_URI'))
+engine = create_engine(os.getenv('FOOTBALL_URI'))
 conn = engine.connect()
+
 
 def truncate_table(table_name, conn=conn):
     conn.execute(text("TRUNCATE TABLE {} CASCADE;".format(table_name)))
@@ -50,6 +51,9 @@ def does_exist(data, column_name, table_name, conn=conn):
     
 
 def fetch_data(column_name, table_name, engine = engine, conn = conn) -> list:
+    """
+    Kolon ve tablo bilgisine göre veritabanından veriler çekilir. Liste döner.
+    """
     metadata = MetaData()
     match_table = Table(table_name, metadata, autoload_with=engine)
     stmt = select(match_table.c[column_name])

@@ -2,13 +2,17 @@ version: '3.8'
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - python:3.11-alpine
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     depends_on:
-      - sql_alchemy
+      - db
 
   db:
     image: postgres
