@@ -2,15 +2,18 @@ version: '3.8'
 
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - python:3.11-alpine
-    volumes:
-      - .:/app
+    build: .
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DOCKER_ENV=1
+      - DISPLAY=:99
+    shm_size: '2gb'
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
     depends_on:
       - db
 

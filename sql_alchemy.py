@@ -3,8 +3,32 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import create_engine, MetaData, Table, text, select
 import os
 from dotenv import load_dotenv
+import json
+from datetime import datetime
+import logging
+from pathlib import Path
 
 load_dotenv()
+
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_dir / 'database_operations.log'),  # tüm veritabanı işlemleri için log
+        logging.FileHandler(log_dir / 'database_errors.log'),      # sadece hatalar için log
+        logging.StreamHandler()  # print gibi konsola yazar
+    ]
+)
+
+
+error_logger = logging.getLogger('error_logger')
+error_logger.setLevel(logging.ERROR)
+error_handler = logging.FileHandler(log_dir / 'database_errors.log')
+error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+error_logger.addHandler(error_handler)
 
 engine = create_engine(os.getenv('FOOTBALL_URI'))
 conn = engine.connect()
@@ -14,6 +38,35 @@ def truncate_table(table_name, conn=conn):
     conn.execute(text("TRUNCATE TABLE {} CASCADE;".format(table_name)))
     conn.commit()
 
+
+def log_error(error_type: str, error_message: str, table_name: str, row_data: dict, sql_query: str = None):
+    """Hata bilgilerini JSON formatında loglar"""
+    error_log = {
+        'timestamp': datetime.now().isoformat(),
+        'error_type': error_type,
+        'error_message': str(error_message),
+        'table_name': table_name,
+        'row_data': row_data,
+        'sql_query': sql_query
+    }
+    
+    log_file = log_dir / f'errors_{table_name}.json'
+    try:
+        if log_file.exists():
+            with open(log_file, 'r', encoding='utf-8') as f:
+                logs = json.load(f)
+        else:
+            logs = []
+        
+        logs.append(error_log)
+        
+        with open(log_file, 'w', encoding='utf-8') as f:
+            json.dump(logs, f, ensure_ascii=False, indent=4)
+            
+    except Exception as e:
+        error_logger.error(f"Log dosyası yazılırken hata oluştu: {str(e)}")
+    
+    error_logger.error(f"Veritabanı hatası - Tablo: {table_name}, Hata: {error_message}")
 
 def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_columns: list = []):
     metadata = MetaData()
@@ -27,6 +80,8 @@ def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_colum
     successful_inserts = 0
     failed_inserts = 0
     
+    logging.info(f"Tablo {table_name} için veri ekleme işlemi başladı. Toplam {len(rows)} satır.")
+    
     for row in rows:
         try:
             insertion = insert(table).values(row)
@@ -36,13 +91,19 @@ def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_colum
             conn.commit()
             successful_inserts += 1
         except Exception as e:
-            print(f"Satır eklenirken hata oluştu: {str(e)}")
-            print(f"Hatalı satır: {row}")
             failed_inserts += 1
+            log_error(
+                error_type=type(e).__name__,
+                error_message=str(e),
+                table_name=table_name,
+                row_data=row,
+                sql_query=str(insertion)
+            )
             conn.rollback()
             continue
     
-    print(f"Toplam {len(rows)} satırdan {successful_inserts} başarıyla eklendi, {failed_inserts} satır atlandı.")
+    logging.info(f"Tablo: {table_name} - İşlem tamamlandı. {successful_inserts} satır başarılı, {failed_inserts} satır başarısız.")
+    return successful_inserts, failed_inserts
 
 def does_exist(data, column_name, table_name, conn=conn):
     result = conn.execute(text(f"SELECT EXISTS (SELECT 1 FROM {table_name} WHERE {column_name} = {data})"))  # eğer :{data} olursa %(52)s gibi bi şey oluyor

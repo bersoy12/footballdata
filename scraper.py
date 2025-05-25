@@ -54,7 +54,6 @@ def get_round_matches(tournament_id: int, season_id: int, week: int) -> list:
     """
     try:
         response = scraper.scrape_website(ROUNDS_URL.format(tournament_id, season_id, week))
-        # print(response.get('events'))
         return response.get('events')
     except Exception as e:
         print(f"Haftalık maçlar servisinde hata oluştu: {e}")

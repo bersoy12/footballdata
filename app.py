@@ -9,8 +9,6 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 
 
-
-# def main(league_id: int = 52, season_id: int = 63814, start_week: int = 1, end_week: int = 38):
 def test(tournament_id: int = None,
          country_alpha: str = None,
          season_id: int = None, 
@@ -42,28 +40,36 @@ def test(tournament_id: int = None,
     #     print(f"İşlem sırasında hata oluştu: {str(e)}")
 
     try:
-        # # Tüm haftaların maçlarını topla
-        # all_matches = []
-        # for week in range(start_week, end_week + 1):
-        #     print(f"Hafta {week} maçları alınıyor...")
-        #     matches = get_round_matches(tournament_id, season_id, week)
-        #     all_matches.extend(matches)
+        # Tüm haftaların maçlarını topla
+        all_matches = []
+        for week in range(start_week, end_week + 1):
+            print(f"Hafta {week} maçları alınıyor...")
+            matches = get_round_matches(tournament_id, season_id, week)
+            all_matches.extend(matches)
 
-        # with ThreadPoolExecutor(max_workers=1) as executor:
-        #     results = list(executor.map(process_match_data, all_matches))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            results = list(executor.map(process_match_data, all_matches))
         
-
-        # insert_table(pd.DataFrame(results), table_name="match", on_conflict_columns=["match_id"])
+        print("Maçlar işlendi.")
+        print("Maçlar veritabanına yükleniyor.")
+        insert_table(pd.DataFrame(results), table_name="match", on_conflict_columns=["match_id"])
         
         # maç tablosunda bulunan match idleri al
+        print("Maç tablosundan match_id'leri alınıyor.")
         match_ids = fetch_data("match_id", "match")
 
+    
+
         # match stats
+
+        print("İstatistikler çekiliyor.")
 
         # statistics tablosunda eğer o maç idsi yoksa maç istatistiklerini al
         statistics_match_ids = fetch_data("match_id", "statistic")
 
         match_ids_for_stats = list(set(match_ids) ^ set(statistics_match_ids))
+
+        print("Bu maçlar için işlem yapılıyor: {match_ids_for_stats}")
         
         with ThreadPoolExecutor(max_workers=1) as executor:
             statistics = list(executor.map(get_match_statistics, match_ids_for_stats))
@@ -78,11 +84,15 @@ def test(tournament_id: int = None,
             print(f"insert_table statistic sırasında hata oluştu: {str(e)}")
         
 
+        print("Olaylar çekiliyor.")
+
         # match incidents
 
         incident_match_ids  = fetch_data("match_id", "incident")
 
         match_ids_for_incident = list(set(match_ids) ^ set(incident_match_ids))
+
+        print("Bu maçlar için işlem yapılıyor: {match_ids_for_incident}")
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             events = list(executor.map(get_match_events, match_ids_for_incident))
@@ -97,11 +107,15 @@ def test(tournament_id: int = None,
             print(f"insert_table incident sırasında hata oluştu: {str(e)}")
 
 
+        print("Grafikler çekiliyor.")
         # match momentum
 
         graph_match_ids = fetch_data("match_id", "momentum")
 
         match_ids_for_momentum = list(set(match_ids) ^ set(graph_match_ids))
+
+        print("Bu maçlar için işlem yapılıyor: {match_ids_for_momentum}")
+
         with ThreadPoolExecutor(max_workers=1) as executor:
             graphs = list(executor.map(get_match_graph, match_ids_for_momentum))
 
@@ -120,61 +134,15 @@ def test(tournament_id: int = None,
         return statistics, events, graphs, match_ids, game_stats, game_events, game_graphs
 
 
-        
-            
-        # Paralel işleme için thread havuzu oluştur
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            # Maç verilerini paralel olarak işle
-            future_to_match = {
-                executor.submit(process_match_data, match["id"], match): match["id"]
-                for match in all_matches
-            }
-
-            # Verileri topla
-            all_match_data = []
-            all_incidents_data = []
-            all_statistics_data = []
-            all_momentum_data = []
-
-            for future in concurrent.futures.as_completed(future_to_match):
-                match_id = future_to_match[future]
-                try:
-                    match_data, incidents_data, statistics_data, momentum_data = future.result()
-                    if match_data:
-                        all_match_data.append(match_data)
-                    if incidents_data:
-                        all_incidents_data.extend(incidents_data)
-                    if statistics_data:
-                        for stat in statistics_data:
-                            stat['match_id'] = match_id
-                        all_statistics_data.extend(statistics_data)
-                    if momentum_data:
-                        for momentum in momentum_data:
-                            momentum['match_id'] = match_id
-                        all_momentum_data.extend(momentum_data)
-                except Exception as e:
-                    print(f"Maç {match_id} işlenirken hata oluştu: {str(e)}")
-
-        # Verileri toplu olarak veritabanına kaydet
-        # print("Veriler veritabanına kaydediliyor...")
-        # batch_insert(conn, cursor, "match", all_match_data)
-        # batch_insert(conn, cursor, "incident", all_incidents_data)
-        # batch_insert(conn, cursor, "statistic", all_statistics_data)
-        # batch_insert(conn, cursor, "match_momentum", all_momentum_data)
-        # print("Tüm veriler başarıyla kaydedildi!")
 
     except Exception as e:
         print(f"İşlem sırasında hata oluştu: {str(e)}")
     finally:
         pass
-        # cursor.close()
-        # conn.close()
 
-# if __name__ == "__main__":
+
 
 statistics, events, graphs, match_ids, game_stats, game_events, game_graphs = \
-        test(tournament_id=52, country_alpha='TR', season_id=63814, start_week=1, end_week=2)
-
-
+        test(tournament_id=52, country_alpha='TR', season_id=63814, start_week=1, end_week=38)
 
 

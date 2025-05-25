@@ -7,6 +7,7 @@ import json
 import numpy as np
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import os
 
 
 class CloudflareScraper:
@@ -27,6 +28,18 @@ class CloudflareScraper:
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-software-rasterizer')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-setuid-sandbox')
+        
+        if os.environ.get('DOCKER_ENV'):
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-accelerated-2d-canvas')
+            options.add_argument('--no-first-run')
+            options.add_argument('--no-zygote')
+            options.add_argument('--single-process')
+            options.add_argument('--disable-features=site-per-process')
         
         self.driver = uc.Chrome(options=options)
         self.driver.set_page_load_timeout(30)
@@ -35,7 +48,7 @@ class CloudflareScraper:
         """Belirtilen URL'den veri çeker"""
         try:
             self.start_browser()
-            print("Sayfa yükleniyor...")
+            # print("Sayfa yükleniyor...")
             
             self.driver.get(url)
             time.sleep(5)
@@ -64,7 +77,7 @@ class CloudflareScraper:
                 except:
                     pass
                 self.driver = None
-                print("Tarayıcı kapatıldı")
+                # print("Tarayıcı kapatıldı")
     
     def __del__(self):
         """Destructor - tarayıcıyı temiz bir şekilde kapatır"""
