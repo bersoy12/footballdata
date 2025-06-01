@@ -3,6 +3,9 @@ import pandas as pd
 import os
 import json
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -27,12 +30,14 @@ def get_tournaments(country_alpha2: str) -> list:
     Returns:
         list: Maç olaylarının listesi.
     """
+
+    logger.info(f"Fetching tournaments for country: {country_alpha2}")
     try:
         response = scraper.scrape_website(TOURNAMENTS_URL.format(country_alpha2))
         data = pd.DataFrame(response.get('uniqueTournaments'))
         return data # bu pandas frame döndürsün
     except Exception as e:
-        print(f"Turnuvalar servisinde hata oluştu: {e}")
+        logger.error(f"Error fetching tournaments for {country_alpha2}: {e}")
         return []
 
 
@@ -52,11 +57,13 @@ def get_round_matches(tournament_id: int, season_id: int, week: int) -> list:
     Returns:
         list: Maçların listesi.
     """
+
+    logger.info(f"Fetching matches for tournament_id: {tournament_id}, season_id: {season_id}, week: {week}")
     try:
         response = scraper.scrape_website(ROUNDS_URL.format(tournament_id, season_id, week))
         return response.get('events')
     except Exception as e:
-        print(f"Haftalık maçlar servisinde hata oluştu: {e}")
+        logger.error(f"Error fetching matches for tournament {tournament_id}, season {season_id}, week {week}: {e}")
         return []
 
 
@@ -70,12 +77,12 @@ def get_match_events(match_id: int) -> list:
     Returns:
         list: Maç olaylarının listesi.
     """
-    print(f"{match_id} maçı olayları alınıyor...")
+    logger.info(f"Fetching events for match_id: {match_id}")
     try:
         response = scraper.scrape_website(INCIDENTS_URL.format(match_id))
         return response
     except Exception as e:
-        print(f"Olaylar servisinde hata oluştu: {e}")
+        logger.error(f"Error fetching events for match {match_id}: {e}")
         return []
 
 
@@ -89,12 +96,12 @@ def get_match_statistics(match_id: int) -> list:
     Returns:
         list: Maç istatistiklerinin listesi.
     """
-    print(f"{match_id} maçı istatistikleri alınıyor...")
+    logger.info(f"Fetching statistics for match_id: {match_id}")
     try:
         response = scraper.scrape_website(STATISTICS_URL.format(match_id))
         return response
     except Exception as e:
-        print(f"İstatistikler servisinde hata oluştu: {e}")
+        logger.error(f"Error fetching statistics for match {match_id}: {e}")
         return []
 
 
@@ -108,12 +115,13 @@ def get_match_graph(match_id: int) -> dict:
     Returns:
         dict: Maç momentum grafiği verisi.
     """
-    print(f"{match_id} maç momentum grafiği alınıyor...")
+    logger.info(f"Fetching momentum graph for match_id: {match_id}")
+
     try:
         response = scraper.scrape_website(MOMENTUM_URL.format(match_id))
         return response
     except Exception as e:
-        print(f"Grafik servisinde hata oluştu: {e}")
+        logger.error(f"Error fetching momentum graph for match {match_id}: {e}")
         return {}
 
 

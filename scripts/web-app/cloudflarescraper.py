@@ -2,13 +2,16 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 import time
 import json
 import numpy as np
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 class CloudflareScraper:
     def __init__(self):
@@ -40,16 +43,19 @@ class CloudflareScraper:
             options.add_argument('--no-zygote')
             options.add_argument('--single-process')
             options.add_argument('--disable-features=site-per-process')
+
+        service = Service(log_path='chrome_driver.log')
+        service.service_args = ['--log-level=0'] 
         
-        self.driver = uc.Chrome(options=options)
+        self.driver = uc.Chrome(options=options, service=service)
         self.driver.set_page_load_timeout(30)
         
     def scrape_website(self, url):
         """Belirtilen URL'den veri çeker"""
         try:
-            self.start_browser()
-            # print("Sayfa yükleniyor...")
             
+            self.start_browser()
+            logger.info(f"GET request to URL: {url}")
             self.driver.get(url)
             time.sleep(5)
             
@@ -58,7 +64,7 @@ class CloudflareScraper:
             )
             
             content = self.driver.page_source
-            print("Sayfa içeriği başarıyla alındı")
+            logger.info("The page content has been retrieved successfully.")
             if '<pre>' in content:
                 soup = BeautifulSoup(content, "html.parser")
                 pre_text = soup.find('pre').text
@@ -67,7 +73,7 @@ class CloudflareScraper:
             return content
             
         except Exception as e:
-            print(f"Hata oluştu: {str(e)}")
+            logger.error(f"Error during request to {url}: {str(e)}")
             return None
             
         finally:
@@ -77,7 +83,6 @@ class CloudflareScraper:
                 except:
                     pass
                 self.driver = None
-                # print("Tarayıcı kapatıldı")
     
     def __del__(self):
         """Destructor - tarayıcıyı temiz bir şekilde kapatır"""

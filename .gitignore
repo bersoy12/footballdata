@@ -1,5 +1,5 @@
-__pycache__/
 *.pyc
-logs/
+scripts/web-app/__pycache__/*
+scripts/web-app/logs/*
 *.log
 .env

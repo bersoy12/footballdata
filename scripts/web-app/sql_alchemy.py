@@ -13,13 +13,26 @@ load_dotenv()
 log_dir = Path("logs")
 log_dir.mkdir(exist_ok=True)
 
+
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+docker_formatter = logging.Formatter('%(levelname)s - %(message)s')
+
+operations_handler = logging.FileHandler(log_dir / 'database_operations.log')
+operations_handler.setFormatter(file_formatter)
+
+errors_handler = logging.FileHandler(log_dir / 'database_errors.log')
+errors_handler.setFormatter(file_formatter)
+
+docker_handler = logging.StreamHandler()
+docker_handler.setFormatter(docker_formatter)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    # format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_dir / 'database_operations.log'),  # tüm veritabanı işlemleri için log
-        logging.FileHandler(log_dir / 'database_errors.log'),      # sadece hatalar için log
-        logging.StreamHandler()  # print gibi konsola yazar
+        operations_handler  # tüm veritabanı işlemleri için log
+        , errors_handler    # sadece hatalar için log
+        , docker_handler    # print gibi konsola yazar
     ]
 )
 

@@ -89,7 +89,9 @@ CREATE TABLE public.match (
     status_code integer,
     status_type character varying(50),
     winner_code integer,
+    home_team_name character varying(255),
     home_team_id integer,
+    away_team_name character varying(255),
     away_team_id integer,
     home_score_period1 integer,
     home_score_period2 integer,
@@ -97,8 +99,8 @@ CREATE TABLE public.match (
     away_score_period1 integer,
     away_score_period2 integer,
     away_score_normaltime integer,
-    time_injury_time1 integer,
-    time_injury_time2 integer
+    time_injury_time1 double precision,
+    time_injury_time2 double precision
 );
 
 

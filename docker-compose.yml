@@ -1,12 +1,15 @@
-version: '3.8'
-
 services:
   web:
-    build: .
+    # container_name: web
+    build: 
+      context: ./docker/web-app
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ./scripts/web-app:/app
+    env_file:
+      - scripts/web-app/.env
     environment:
       - DOCKER_ENV=1
       - DISPLAY=:99
@@ -18,8 +21,14 @@ services:
       - db
 
   db:
-    image: postgres
+    # image: postgres
+    # container_name: postgres
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
     container_name: postgres-db
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${PASSWORD}
@@ -28,6 +37,7 @@ services:
       - "5432:5432"
     volumes:
       - footballdata:/var/lib/postgresql/data
+      - ./scripts/postgres:/scripts
 
 volumes:
   footballdata:

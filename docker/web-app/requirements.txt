@@ -1,0 +1,13 @@
+pandas
+sqlalchemy
+psycopg2-binary
+python-dotenv
+undetected-chromedriver
+selenium
+beautifulsoup4
+uvicorn
+fastapi
+streamlit
+plotly
+numpy
+requests

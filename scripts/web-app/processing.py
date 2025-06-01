@@ -1,7 +1,9 @@
 
 from typing import List, Dict
 from scraper import get_round_matches, get_match_events, get_tournaments, get_match_statistics, get_match_graph
+import logging
 
+logger = logging.getLogger(__name__)
 
 def process_tournament(tournament):
     return {"id": tournament.get("id"), "name": tournament.get("name")}
@@ -13,10 +15,10 @@ def process_match(match):
                     , "round": match.get("roundInfo").get("round")
                     , "start_timestamp": match.get("startTimestamp")
                     , "home_team_id": match.get("homeTeam").get("id")
-                    # , "home_team_name": match.get("homeTeam").get("name")
+                    , "home_team_name": match.get("homeTeam").get("name")
                     , "away_team_id": match.get("awayTeam").get("id")
-                    # , "away_team_name": match.get("awayTeam").get("name")
-                    , "slug": match.get("slug")
+                    , "away_team_name": match.get("awayTeam").get("name")
+                    # , "slug": match.get("slug")
                     , "status_code": match.get("status").get("code")
                     , "status_type": match.get("status").get("type")
                     , "winner_code": match.get("winnerCode")
@@ -35,36 +37,14 @@ def process_match_data(match) -> tuple:
 
     match_id = match.get('id')
     if match.get("status", {}).get("type") == "notstarted":
-        print(f"Maç {match_id} başlamadı, atlanıyor.")
-        return None, None, None, None
+        logger.info(f"Maç {match_id} başlamadı, atlanıyor.")
+        return None
 
-    print(f"Maç {match_id} için veriler işleniyor...")
+    logger.info(f"Maç {match_id} için veriler işleniyor...")
     
-    # Maç verilerini işle
     match_data = process_match(match)
     
     return match_data
-    # Olay verilerini işle
-    # incidents_data = []
-    # incidents = get_match_events(match_id)
-    # if incidents:
-    #     for incident in incidents:
-    #         incident_data = process_incidents(incident, match_id)
-    #         incidents_data.append(incident_data)
-    
-    # # İstatistik verilerini işle
-    # statistics = get_match_statistics(match_id)
-    # statistics_data = None
-    # if statistics:
-    #     statistics_data = flatten_statistics(statistics)
-    
-    # # Momentum verilerini işle
-    # graph_data = get_match_graph(match_id)
-    # momentum_data = None
-    # if graph_data:
-    #     momentum_data = graph_data.get("graphPoints", [])
-        
-    # return match_data, incidents_data, statistics_data, momentum_data
 
 
 def process_statistics(statistics, match_id):

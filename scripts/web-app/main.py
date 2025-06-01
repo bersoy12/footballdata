@@ -1,27 +1,48 @@
+from fastapi import FastAPI
 from scraper import get_round_matches, get_match_events, get_tournaments, get_match_statistics, get_match_graph
 from processing import process_statistics, process_incidents, process_match, process_tournament, process_match_data, process_graphs
 import os
 import pandas as pd
 import concurrent.futures
-from typing import List, Dict
+from typing import List, Dict, Optional
 from sql_alchemy import insert_table, does_exist, truncate_table, fetch_data
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
+import logging
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+@app.post("/veri-cek")
+def veri_cek_endpoint(
+    tournament_id: Optional[int] = None,
+    country_alpha: Optional[str] = None,
+    season_id: Optional[int] = None, 
+    start_week: Optional[int] = None, 
+    end_week: Optional[int] = None, 
+    update_tournaments: Optional[bool] = False
+):
+    """
+    Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
+    """
+    return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
 
 
-def test(tournament_id: int = None,
+def veri_cek(tournament_id: int = None,
          country_alpha: str = None,
          season_id: int = None, 
          start_week: int = None, 
          end_week: int = None, 
-         update_tournaments: bool = False):
+         update_tournaments: bool = False,
+         update_statistic: bool = False):
     """
     Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
     """
     # Veritabanı bağlantısını bir kere oluştur
     # conn, cursor = connect_postgre("football")
     # if conn is None or cursor is None:
-    #     print("Veritabanı bağlantısı kurulamadı!")
+    #     logger.info("Veritabanı bağlantısı kurulamadı!")
     #     return
 
     # try:
@@ -37,54 +58,55 @@ def test(tournament_id: int = None,
 
     #         # batch_insert(conn, cursor, "tournament", all_tournaments)
     # except Exception as e:
-    #     print(f"İşlem sırasında hata oluştu: {str(e)}")
+    #     logger.info(f"İşlem sırasında hata oluştu: {str(e)}")
 
     try:
         # Tüm haftaların maçlarını topla
         all_matches = []
         for week in range(start_week, end_week + 1):
-            print(f"Hafta {week} maçları alınıyor...")
+            logger.info(f"Hafta {week} maçları alınıyor...")
             matches = get_round_matches(tournament_id, season_id, week)
+            if matches == [] or matches == None:
+                break
             all_matches.extend(matches)
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             results = list(executor.map(process_match_data, all_matches))
         
-        print("Maçlar işlendi.")
-        print("Maçlar veritabanına yükleniyor.")
+        logger.info("Maçlar işlendi.")
+        logger.info("Maçlar veritabanına yükleniyor.")
         insert_table(pd.DataFrame(results), table_name="match", on_conflict_columns=["match_id"])
         
         # maç tablosunda bulunan match idleri al
-        print("Maç tablosundan match_id'leri alınıyor.")
+        logger.info("Maç tablosundan match_id'leri alınıyor.")
         match_ids = fetch_data("match_id", "match")
 
     
-
         # match stats
 
-        print("İstatistikler çekiliyor.")
+        logger.info("İstatistikler çekiliyor.")
 
         # statistics tablosunda eğer o maç idsi yoksa maç istatistiklerini al
+        
         statistics_match_ids = fetch_data("match_id", "statistic")
-
         match_ids_for_stats = list(set(match_ids) ^ set(statistics_match_ids))
 
-        print("Bu maçlar için işlem yapılıyor: {match_ids_for_stats}")
-        
+        logger.info(f"Bu maçlar için işlem yapılıyor: {match_ids_for_stats}")
+
         with ThreadPoolExecutor(max_workers=1) as executor:
             statistics = list(executor.map(get_match_statistics, match_ids_for_stats))
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             game_stats = list(executor.map(process_statistics, statistics, match_ids_for_stats))
-        
+
         game_stats = list(chain.from_iterable(game_stats))
         try:
             insert_table(pd.DataFrame(game_stats), table_name="statistic")
         except Exception as e:
-            print(f"insert_table statistic sırasında hata oluştu: {str(e)}")
-        
+            logger.info(f"insert_table statistic sırasında hata oluştu: {str(e)}")
 
-        print("Olaylar çekiliyor.")
+
+        logger.info("Olaylar çekiliyor.")
 
         # match incidents
 
@@ -92,7 +114,7 @@ def test(tournament_id: int = None,
 
         match_ids_for_incident = list(set(match_ids) ^ set(incident_match_ids))
 
-        print("Bu maçlar için işlem yapılıyor: {match_ids_for_incident}")
+        logger.info(f"Bu maçlar için işlem yapılıyor: {match_ids_for_incident}")
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             events = list(executor.map(get_match_events, match_ids_for_incident))
@@ -104,17 +126,17 @@ def test(tournament_id: int = None,
         try:
             insert_table(pd.DataFrame(game_events), table_name="incident")
         except Exception as e:
-            print(f"insert_table incident sırasında hata oluştu: {str(e)}")
+            logger.info(f"insert_table incident sırasında hata oluştu: {str(e)}")
 
 
-        print("Grafikler çekiliyor.")
+        logger.info("Grafikler çekiliyor.")
         # match momentum
 
         graph_match_ids = fetch_data("match_id", "momentum")
 
         match_ids_for_momentum = list(set(match_ids) ^ set(graph_match_ids))
 
-        print("Bu maçlar için işlem yapılıyor: {match_ids_for_momentum}")
+        logger.info(f"Bu maçlar için işlem yapılıyor: {match_ids_for_momentum}")
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             graphs = list(executor.map(get_match_graph, match_ids_for_momentum))
@@ -126,23 +148,21 @@ def test(tournament_id: int = None,
         try:
             insert_table(pd.DataFrame(game_graphs), table_name="momentum")
         except Exception as e:
-            print(f"insert_table match_momentum sırasında hata oluştu: {str(e)}")
+            logger.info(f"insert_table match_momentum sırasında hata oluştu: {str(e)}")
 
         
 
     
-        return statistics, events, graphs, match_ids, game_stats, game_events, game_graphs
+        # return statistics, events, graphs, match_ids, game_stats, game_events, game_graphs
 
 
 
     except Exception as e:
-        print(f"İşlem sırasında hata oluştu: {str(e)}")
+        logger.info(f"İşlem sırasında hata oluştu: {str(e)}")
     finally:
         pass
 
 
 
-statistics, events, graphs, match_ids, game_stats, game_events, game_graphs = \
-        test(tournament_id=52, country_alpha='TR', season_id=63814, start_week=1, end_week=38)
 
 
