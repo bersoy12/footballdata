@@ -18,19 +18,19 @@ class PayloadType(str, Enum):
     graphs = "Momentum Grafiği"
 
 
-@app.post("/veri-cek")
-def veri_cek_endpoint(
-    tournament_id: Optional[int] = None,
-    country_alpha: Optional[str] = None,
-    season_id: Optional[int] = None, 
-    start_week: Optional[int] = None, 
-    end_week: Optional[int] = None, 
-    update_tournaments: Optional[bool] = False
-):
-    """
-    Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
-    """
-    return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
+# @app.post("/veri-cek")
+# def veri_cek_endpoint(
+#     tournament_id: Optional[int] = None,
+#     country_alpha: Optional[str] = None,
+#     season_id: Optional[int] = None, 
+#     start_week: Optional[int] = None, 
+#     end_week: Optional[int] = None, 
+#     update_tournaments: Optional[bool] = False
+# ):
+#     """
+#     Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
+#     """
+#     return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
 
 
 @app.get("/maclari-al")
@@ -88,7 +88,7 @@ def varitabanina_ekle(df: pd.DataFrame, table_name: str, on_conflict_columns: Op
     return insert_table(df, table_name=table_name, on_conflict_columns=on_conflict_columns, on_conflict_entire_columns=on_conflict_entire_columns)
 
 
-@app.post("/istatistikleri-al")
+@app.post("/veri-topla")
 def istatistikleri_al_endpoint(
     match_ids: List[int] = Body(...),
     payload: PayloadType = Query(..., embed=True),
