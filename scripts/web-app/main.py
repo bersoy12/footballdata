@@ -1,9 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body, Query
 from scraper import get_round_matches, get_match_events, get_tournaments, get_match_statistics, get_match_graph
 from processing import process_statistics, process_incidents, process_match, process_tournament, process_match_data, process_graphs
 import os
 import pandas as pd
-import concurrent.futures
 from typing import List, Dict, Optional
 from sql_alchemy import insert_table, does_exist, truncate_table, fetch_data
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +26,107 @@ def veri_cek_endpoint(
     Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
     """
     return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
+
+
+@app.get("/maclari-al")
+def maclari_al_endpoint(
+    tournament_id: Optional[int] = None,
+    season_id: Optional[int] = None, 
+    week: Optional[int] = None,
+    start_week: Optional[int] = None,
+    end_week: Optional[int] = None,
+):
+    """
+    Belirtilen hafta ya da haftalarda oynanan tüm maçları çeker.
+    """
+    if start_week:
+        matches = []
+        for week in range(start_week, end_week + 1):
+            logger.info(f"Hafta {week} maçları alınıyor...")
+            matches += maclari_al(tournament_id, season_id, week)
+
+        return matches
+
+    return maclari_al(tournament_id, season_id, week)
+
+
+def maclari_al(tournament_id: Optional[int] = None,
+               season_id: Optional[int] = None,
+               week: Optional[int] = None):
+    return get_round_matches(tournament_id, season_id, week)
+
+
+@app.post("/mac-verisini-isle")
+def mac_verisini_isle_endpoint(matches: List = Body(...)):
+    maclar = []
+    for match in matches:
+        maclar.extend([mac_verisini_isle(match)])
+    return maclar
+
+
+def mac_verisini_isle(match):
+    """Tek bir maç alır."""
+    return process_match_data(match)
+    
+
+@app.post("/veritabanina-ekle")
+def veritabanina_ekle_endpoint(
+    table_name: str,
+    data: List[Dict] = Body(...),
+    on_conflict_columns: Optional[List[str]] = Query(default=[])
+):
+    lst_of_data = [item for item in data if item is not None]
+    df = pd.DataFrame(lst_of_data)
+    return varitabanina_ekle(df, table_name=table_name, on_conflict_columns=on_conflict_columns)
+
+def varitabanina_ekle(df: pd.DataFrame, table_name: str, on_conflict_columns: Optional[List[str]] = [], on_conflict_entire_columns: Optional[bool] = False):
+    return insert_table(df, table_name=table_name, on_conflict_columns=on_conflict_columns, on_conflict_entire_columns=on_conflict_entire_columns)
+
+
+@app.post("/istatistikleri-al")
+def istatistikleri_al_endpoint(
+    match_ids: List[int] = Body(...),
+    insert_simultaneously: bool = True
+):
+    """
+    Birden fazla maç için istatistikleri paralel olarak işler.
+    """
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        processed_stats = list(executor.map(
+            lambda match_id: mac_istatistiklerini_isle(match_id, insert_simultaneously),
+            match_ids
+        ))
+
+    processed_stats = list(chain.from_iterable(processed_stats))
+    return processed_stats
+
+
+def mac_istatistiklerini_isle(match_id: int, insert_simultaneously: bool = True):
+    stats = get_match_statistics(match_id)
+    processed_stats = process_statistics(stats, match_id)
+    if processed_stats == []:
+        return []
+    if insert_simultaneously:
+        varitabanina_ekle(pd.DataFrame(processed_stats), table_name="statistic", on_conflict_entire_columns = True)
+    return processed_stats
+
+
+
+@app.get("/veritabanindan-cek")
+def veritabanindan_cek_endpoint(
+    table_name: str,
+    column_name: str
+    ):
+
+    return veritabanindan_cek(table_name, column_name)
+
+def veritabanindan_cek(
+    table_name: str,
+    column_name: str
+        ):
+    return fetch_data(column_name, table_name)
+
+
 
 
 def veri_cek(tournament_id: int = None,
@@ -65,9 +165,12 @@ def veri_cek(tournament_id: int = None,
         all_matches = []
         for week in range(start_week, end_week + 1):
             logger.info(f"Hafta {week} maçları alınıyor...")
-            matches = get_round_matches(tournament_id, season_id, week)
+            try:
+                matches = get_round_matches(tournament_id, season_id, week)
+            except:
+                matches = None
             if matches == [] or matches == None:
-                break
+                continue
             all_matches.extend(matches)
 
         with ThreadPoolExecutor(max_workers=1) as executor:

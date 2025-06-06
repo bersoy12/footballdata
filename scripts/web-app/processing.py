@@ -37,18 +37,23 @@ def process_match_data(match) -> tuple:
 
     match_id = match.get('id')
     if match.get("status", {}).get("type") == "notstarted":
-        logger.info(f"Maç {match_id} başlamadı, atlanıyor.")
+        logger.info(f"Match {match_id} has not started. Skipping.")
         return None
 
-    logger.info(f"Maç {match_id} için veriler işleniyor...")
+    logger.info(f"Processing data for match {match_id}...")
     
     match_data = process_match(match)
-    
     return match_data
 
 
 def process_statistics(statistics, match_id):
     """İstatistiksel maç verilerini düzleştirir."""
+    if not statistics:
+        return []
+    if statistics.get("error").get("code") == 404:
+        logger.info(f"{match_id}" + " " + statistics.get("error").get("message"))
+        return []
+    
     flattened_data = []
     periods = statistics.get("statistics")
     for period in periods:

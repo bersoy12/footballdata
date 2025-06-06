@@ -11,3 +11,4 @@ streamlit
 plotly
 numpy
 requests
+python-multipart

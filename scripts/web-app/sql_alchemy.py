@@ -81,7 +81,7 @@ def log_error(error_type: str, error_message: str, table_name: str, row_data: di
     
     error_logger.error(f"Veritabanı hatası - Tablo: {table_name}, Hata: {error_message}")
 
-def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_columns: list = []):
+def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_columns: list = [], on_conflict_entire_columns: bool = False):
     metadata = MetaData()
     table = Table(table_name, metadata, autoload_with=engine)
     
@@ -93,11 +93,13 @@ def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_colum
     successful_inserts = 0
     failed_inserts = 0
     
-    logging.info(f"Tablo {table_name} için veri ekleme işlemi başladı. Toplam {len(rows)} satır.")
+    logging.info(f"Data insertion started for table {table_name}. Total {len(rows)} rows.")
     
     for row in rows:
         try:
             insertion = insert(table).values(row)
+            if on_conflict_entire_columns:
+                insertion = insertion.on_conflict_do_nothing(index_elements=list(table.columns.keys()))
             if on_conflict_columns:
                 insertion = insertion.on_conflict_do_nothing(index_elements=on_conflict_columns)
             conn.execute(insertion)
@@ -115,7 +117,7 @@ def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_colum
             conn.rollback()
             continue
     
-    logging.info(f"Tablo: {table_name} - İşlem tamamlandı. {successful_inserts} satır başarılı, {failed_inserts} satır başarısız.")
+    logging.info(f"Table: {table_name} - Operation completed. {successful_inserts} rows successful, {failed_inserts} rows failed.")
     return successful_inserts, failed_inserts
 
 def does_exist(data, column_name, table_name, conn=conn):
