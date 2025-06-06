@@ -50,12 +50,15 @@ def process_statistics(statistics, match_id):
     """İstatistiksel maç verilerini düzleştirir."""
     if not statistics:
         return []
-    if statistics.get("error").get("code") == 404:
-        logger.info(f"{match_id}" + " " + statistics.get("error").get("message"))
-        return []
+    # if statistics.get("error").get("code") == 404:
+    #     logger.info(f"{match_id}" + " " + statistics.get("error").get("message"))
+    #     return []
     
     flattened_data = []
-    periods = statistics.get("statistics")
+    periods = statistics.get("statistics", {})
+    if periods == {}:
+        logger.info(f'{match_id} {statistics.get("error").get("message")} Error code: {str(statistics.get("error").get("code"))}')
+        return []
     for period in periods:
         period_name = period.get("period")
         groups = period.get("groups")
@@ -117,7 +120,12 @@ def process_incidents(incidents, match_id):
 
 def process_graphs(graphs, match_id):
     flattened_data = []
-    graph = graphs.get("graphPoints")
+    graph = graphs.get("graphPoints", {})
+
+    if graph == {}:
+        logger.info(f'{match_id} {graphs.get("error").get("message")} Error code: {str(graphs.get("error").get("code"))}')
+        return []
+    
     for item in graph:
         data = {'match_id': match_id
                 , 'minute': item.get("minute")

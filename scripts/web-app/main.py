@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Body, Query
 from scraper import get_round_matches, get_match_events, get_tournaments, get_match_statistics, get_match_graph
 from processing import process_statistics, process_incidents, process_match, process_tournament, process_match_data, process_graphs
-import os
+from enum import Enum
 import pandas as pd
 from typing import List, Dict, Optional
 from sql_alchemy import insert_table, does_exist, truncate_table, fetch_data
@@ -12,6 +12,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+class PayloadType(str, Enum):
+    statistics = "İstatistik"
+    graphs = "Momentum Grafiği"
+
 
 @app.post("/veri-cek")
 def veri_cek_endpoint(
@@ -86,19 +91,45 @@ def varitabanina_ekle(df: pd.DataFrame, table_name: str, on_conflict_columns: Op
 @app.post("/istatistikleri-al")
 def istatistikleri_al_endpoint(
     match_ids: List[int] = Body(...),
+    payload: PayloadType = Query(..., embed=True),
     insert_simultaneously: bool = True
 ):
     """
-    Birden fazla maç için istatistikleri paralel olarak işler.
+    Birden fazla maç için istatistikleri/grafikleri paralel olarak işler. Simultane bir şekilde veri tabanına yükler.
     """
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        processed_stats = list(executor.map(
-            lambda match_id: mac_istatistiklerini_isle(match_id, insert_simultaneously),
-            match_ids
-        ))
+    if payload == "İstatistik":
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            processed_stats = list(executor.map(
+                lambda match_id: mac_istatistiklerini_isle(match_id, insert_simultaneously),
+                match_ids
+            ))
 
-    processed_stats = list(chain.from_iterable(processed_stats))
-    return processed_stats
+        stats = list(chain.from_iterable(processed_stats))
+        return stats
+
+    if payload == "Momentum Grafiği":
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            processed_graphs = list(executor.map(
+                lambda match_id: mac_grafiklerini_isle(match_id, insert_simultaneously),
+                match_ids
+            ))
+
+        graphs = list(chain.from_iterable(processed_graphs))
+        return graphs
+    
+    return None
+
+
+
+def mac_grafiklerini_isle(match_id: int, insert_simultaneously: bool = True):
+    graphs = get_match_graph(match_id)
+    processed_graphs = process_graphs(graphs, match_id)
+    if processed_graphs == []:
+        return []
+    if insert_simultaneously:
+        varitabanina_ekle(pd.DataFrame(processed_graphs), table_name="momentum", on_conflict_entire_columns = False)
+    return processed_graphs
+
 
 
 def mac_istatistiklerini_isle(match_id: int, insert_simultaneously: bool = True):
@@ -107,8 +138,9 @@ def mac_istatistiklerini_isle(match_id: int, insert_simultaneously: bool = True)
     if processed_stats == []:
         return []
     if insert_simultaneously:
-        varitabanina_ekle(pd.DataFrame(processed_stats), table_name="statistic", on_conflict_entire_columns = True)
+        varitabanina_ekle(pd.DataFrame(processed_stats), table_name="statistic", on_conflict_entire_columns = False)
     return processed_stats
+
 
 
 
@@ -125,9 +157,6 @@ def veritabanindan_cek(
     column_name: str
         ):
     return fetch_data(column_name, table_name)
-
-
-
 
 def veri_cek(tournament_id: int = None,
          country_alpha: str = None,

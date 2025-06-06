@@ -75,3 +75,16 @@ ALTER TABLE match
     ALTER COLUMN away_score_period2 TYPE double precision USING away_score_period2::double precision,
     ALTER COLUMN away_score_normaltime TYPE double precision USING away_score_normaltime::double precision;
 ```
+
+
+## Çoğaltılmış satırlar için çözüm
+
+```sql
+DELETE FROM statistic
+WHERE ctid NOT IN (
+  SELECT MIN(ctid)
+  FROM statistic
+  GROUP BY match_id, period, group_name, statistics_name, value_type, key, statistics_type, away_value, home_value
+);
+```
+
