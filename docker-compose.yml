@@ -1,15 +1,15 @@
 services:
-  web:
-    # container_name: web
+  core:
+    container_name: football-core
     build: 
-      context: ./docker/web-app
+      context: ./docker/core
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - ./scripts/web-app:/app
+      - ./scripts/core-app:/app
     env_file:
-      - scripts/web-app/.env
+      - scripts/core-app/.env
     environment:
       - DOCKER_ENV=1
       - DISPLAY=:99
@@ -26,7 +26,7 @@ services:
     build:
       context: ./docker/postgres
       dockerfile: Dockerfile
-    container_name: postgres-db
+    container_name: football-db
     env_file:
       - .env
     environment:
@@ -38,6 +38,20 @@ services:
     volumes:
       - footballdata:/var/lib/postgresql/data
       - ./scripts/postgres:/scripts
+
+  ui:
+    container_name: football-ui
+    build:
+      context: ./docker/streamlit
+      dockerfile: Dockerfile
+    env_file:
+      - scripts/streamlit-app/.env
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./scripts/streamlit-app:/app/streamlit-app
+      
+
 
 volumes:
   footballdata:
