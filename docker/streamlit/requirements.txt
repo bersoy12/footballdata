@@ -1,3 +1,9 @@
 streamlit
 pandas
 plotly
+sqlalchemy
+python-dotenv
+numpy
+psycopg2-binary
+langchain
+langchain_community

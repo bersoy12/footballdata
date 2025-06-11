@@ -1,0 +1,41 @@
+.main {
+    padding: 0rem 1rem;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 4rem;
+    white-space: pre-wrap;
+    background-color: #f0f2f6;
+    border-radius: 4px 4px 0 0;
+    gap: 1rem;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #ffffff;
+    border-radius: 4px 4px 0 0;
+}
+
+.chat-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px;
+        background-color: #0e1117;
+        border-top: 1px solid #555;
+        z-index: 100;
+}
+
+.chat-messages {
+    margin-bottom: 80px; /* Space for sticky input */
+}
+
+.element-container:has(.chat-input-container) {
+    z-index: 9999;
+}
