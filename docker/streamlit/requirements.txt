@@ -7,3 +7,4 @@ numpy
 psycopg2-binary
 langchain
 langchain_community
+langchain_openai

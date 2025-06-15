@@ -115,7 +115,7 @@ with chatbot:
                 st.stop()
             message_placeholder = st.empty()
             full_response = ""
-            assistant_response = response_generator(conn, user_input)
+            assistant_response = response_generator(question=user_input, api_key=OPENAI_API_KEY)
             # assistant_response_ = random.choice(
             #     [
             #         "Hello there! How can I assist you today?",

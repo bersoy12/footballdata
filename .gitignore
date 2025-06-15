@@ -1,5 +1,6 @@
 *.pyc
-scripts/web-app/__pycache__/*
-scripts/web-app/logs/*
+scripts/core-app/__pycache__/*
+scripts/core-app/logs/*
+scripts/streamlit-app/__pycache__/*
 *.log
 .env

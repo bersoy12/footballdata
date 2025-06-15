@@ -636,5 +636,34 @@
             "time_injury_time2": NaN
         },
         "sql_query": "INSERT INTO match (match_id, tournament_id, season_id, round, start_timestamp, status_code, status_type, winner_code, home_team_name, home_team_id, away_team_name, away_team_id, home_score_period1, home_score_period2, home_score_normaltime, away_score_period1, away_score_period2, away_score_normaltime, time_injury_time1, time_injury_time2) VALUES (%(match_id)s, %(tournament_id)s, %(season_id)s, %(round)s, %(start_timestamp)s, %(status_code)s, %(status_type)s, %(winner_code)s, %(home_team_name)s, %(home_team_id)s, %(away_team_name)s, %(away_team_id)s, %(home_score_period1)s, %(home_score_period2)s, %(home_score_normaltime)s, %(away_score_period1)s, %(away_score_period2)s, %(away_score_normaltime)s, %(time_injury_time1)s, %(time_injury_time2)s) ON CONFLICT (match_id) DO NOTHING"
+    },
+    {
+        "timestamp": "2025-06-15T08:21:50.032157",
+        "error_type": "IntegrityError",
+        "error_message": "(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint \"match_id_unique\"\nDETAIL:  Key (match_id)=(13358297) already exists.\n\n[SQL: INSERT INTO match (match_id, tournament_id, season_id, round, start_timestamp, status_code, status_type, winner_code, home_team_name, home_team_id, away_team_name, away_team_id, home_score_period1, home_score_period2, home_score_normaltime, away_score_period1, away_score_period2, away_score_normaltime, time_injury_time1, time_injury_time2) VALUES (%(match_id)s, %(tournament_id)s, %(season_id)s, %(round)s, %(start_timestamp)s, %(status_code)s, %(status_type)s, %(winner_code)s, %(home_team_name)s, %(home_team_id)s, %(away_team_name)s, %(away_team_id)s, %(home_score_period1)s, %(home_score_period2)s, %(home_score_normaltime)s, %(away_score_period1)s, %(away_score_period2)s, %(away_score_normaltime)s, %(time_injury_time1)s, %(time_injury_time2)s)]\n[parameters: {'match_id': 13358297, 'tournament_id': 31300, 'season_id': 71036, 'round': 1, 'start_timestamp': 1738917000, 'status_code': 100, 'status_type': 'finished', 'winner_code': 1.0, 'home_team_name': 'Manly United', 'home_team_id': 92208, 'away_team_name': 'Central Coast Mariners II Youth', 'away_team_id': 92216, 'home_score_period1': 1.0, 'home_score_period2': 4.0, 'home_score_normaltime': 5.0, 'away_score_period1': 0.0, 'away_score_period2': 0.0, 'away_score_normaltime': 0.0, 'time_injury_time1': None, 'time_injury_time2': None}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+        "table_name": "match",
+        "row_data": {
+            "match_id": 13358297,
+            "tournament_id": 31300,
+            "season_id": 71036,
+            "round": 1,
+            "start_timestamp": 1738917000,
+            "home_team_id": 92208,
+            "home_team_name": "Manly United",
+            "away_team_id": 92216,
+            "away_team_name": "Central Coast Mariners II Youth",
+            "status_code": 100,
+            "status_type": "finished",
+            "winner_code": 1.0,
+            "home_score_period1": 1.0,
+            "home_score_period2": 4.0,
+            "home_score_normaltime": 5.0,
+            "away_score_period1": 0.0,
+            "away_score_period2": 0.0,
+            "away_score_normaltime": 0.0,
+            "time_injury_time1": null,
+            "time_injury_time2": null
+        },
+        "sql_query": "INSERT INTO match (match_id, tournament_id, season_id, round, start_timestamp, status_code, status_type, winner_code, home_team_name, home_team_id, away_team_name, away_team_id, home_score_period1, home_score_period2, home_score_normaltime, away_score_period1, away_score_period2, away_score_normaltime, time_injury_time1, time_injury_time2) VALUES (%(match_id)s, %(tournament_id)s, %(season_id)s, %(round)s, %(start_timestamp)s, %(status_code)s, %(status_type)s, %(winner_code)s, %(home_team_name)s, %(home_team_id)s, %(away_team_name)s, %(away_team_id)s, %(home_score_period1)s, %(home_score_period2)s, %(home_score_normaltime)s, %(away_score_period1)s, %(away_score_period2)s, %(away_score_normaltime)s, %(time_injury_time1)s, %(time_injury_time2)s)"
     }
 ]

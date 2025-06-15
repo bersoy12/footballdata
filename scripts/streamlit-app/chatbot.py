@@ -10,11 +10,6 @@ load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-db = SQLDatabase.from_uri(conn_string)
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
-
-
-
 custom_prompt = '''
 You are a PostgreSQL expert. Given an input question, first create a syntactically correct PostgreSQL query to run, then look at the results of the query and return the answer to the input question.
 Unless the user specifies in the question a specific number of examples to obtain, query for at most {top_k} results using the LIMIT clause as per PostgreSQL. You can order the results to return the most informative data in the database.
@@ -38,7 +33,13 @@ Question: {input}
 
 prompt = PromptTemplate(input_variables=["input", "top_k", "table_info"], template=custom_prompt)
 
-def response_generator(conn: str, question: str, top_k: int = 5):
+def response_generator(
+    question: str, 
+    conn: str = None,
+    top_k: int = 5, 
+    api_key: str = None,
+    llm: ChatOpenAI = None
+):
     """
     Soruyu SQL sorgusuna çevirip veritabanında çalıştırır
     
@@ -46,10 +47,18 @@ def response_generator(conn: str, question: str, top_k: int = 5):
         conn (str): connection URI to database
         question (str): Kullanıcının sorusu
         top_k (int): Maksimum sonuç sayısı
+        api_key (str): OpenAI API anahtarı
+        llm (ChatOpenAI): Language model instance
         
     Returns:
         tuple: (sql_query, result)
     """
+    if llm is None:
+        if api_key is None:
+            raise ValueError("Either llm or api_key must be provided")
+        llm = ChatOpenAI(model="gpt-4", temperature=0, api_key=api_key)
+    if conn is None:
+        conn = os.getenv('FOOTBALL_URI')
     db = SQLDatabase.from_uri(conn)
     chain = create_sql_query_chain(llm, db, prompt)
     sql_query = chain.invoke({
