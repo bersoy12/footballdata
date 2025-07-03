@@ -88,3 +88,23 @@ WHERE ctid NOT IN (
 );
 ```
 
+### Database dump almak için terminal komutu
+
+```sh
+docker exec -t football-pg pg_dump -U postgres -F c -d football > football.dump
+```
+
+
+## match tablosuna eklenen yeni kolonlar için sorgu
+
+Unconsumed column names: season_year, unique_tournament_id, country_alpha2, tournament_name, sport, country_name
+
+```sql
+ALTER TABLE match
+    ADD COLUMN season_year character varying(20),
+    ADD COLUMN unique_tournament_id double precision,
+    ADD COLUMN country_alpha2 character varying(10),
+    ADD COLUMN tournament_name character varying(255),
+    ADD COLUMN country_name character varying(255),
+    ADD COLUMN sport character varying(50);
+```

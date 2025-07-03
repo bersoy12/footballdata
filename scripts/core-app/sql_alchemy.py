@@ -43,13 +43,13 @@ error_handler = logging.FileHandler(log_dir / 'database_errors.log')
 error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 error_logger.addHandler(error_handler)
 
-engine = create_engine(os.getenv('FOOTBALL_URI'))
+engine = create_engine(os.getenv('FOOTBALL_URI'), pool_size=5, max_overflow=10)
 conn = engine.connect()
 
 
-def truncate_table(table_name, conn=conn):
-    conn.execute(text("TRUNCATE TABLE {} CASCADE;".format(table_name)))
-    conn.commit()
+# def truncate_table(table_name, conn=conn):
+#     conn.execute(text("TRUNCATE TABLE {} CASCADE;".format(table_name)))
+#     conn.commit()
 
 
 def log_error(error_type: str, error_message: str, table_name: str, row_data: dict, sql_query: str = None):

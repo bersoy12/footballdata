@@ -12,3 +12,4 @@ plotly
 numpy
 requests
 python-multipart
+pymongo

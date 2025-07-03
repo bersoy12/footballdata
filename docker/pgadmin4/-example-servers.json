@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "football",
+      "Group": "Servers",
+      "Host": "host",
+      "Port": 5432,
+      "Username": "username",
+      "MaintenanceDB": "database name",
+      "SSLMode": "prefer",
+      "ConnectPassword": "password",
+      "ConnectNow": true
+    },
+    "2": {
+      "Name": "pgadmin",
+      "Group": "Servers",
+      "Host": "host",
+      "Port": 5433,
+      "Username": "username",
+      "MaintenanceDB": "database name",
+      "SSLMode": "prefer",
+      "ConnectPassword": "password",
+      "ConnectNow": true
+    }
+  }
+}

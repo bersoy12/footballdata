@@ -1,16 +1,24 @@
-FROM python:3.14-rc-alpine3.20
+FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+# RUN apk update && apk add --no-cache \
+#     build-base \
+#     curl \
+#     git \
+#     postgresql-dev
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     software-properties-common \
     git \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt watchdog
+RUN pip install --no-cache-dir -r requirements.txt watchdog
 
 RUN mkdir -p /app/streamlit-app
 

@@ -1,18 +1,24 @@
 
 from typing import List, Dict
-from scraper import get_round_matches, get_match_events, get_tournaments, get_match_statistics, get_match_graph
+from scraper import get_round_matches, get_match_events, get_top_tournaments, get_match_statistics, get_match_graph
 import logging
 
 logger = logging.getLogger(__name__)
 
 def process_tournament(tournament):
-    return {"id": tournament.get("id"), "name": tournament.get("name")}
+    return {"id": tournament.get("id"), "name": tournament.get("name"), "sport": tournament.get("sport").get("name"), "alpha2": tournament.get("alpha2", "")}
 
 def process_match(match):
     return {"match_id": match.get("id")
                     , "tournament_id": match.get("tournament").get("id")
+                    , "unique_tournament_id": match.get("tournament").get("uniqueTournament").get("id")
+                    , "tournament_name": match.get("tournament").get("name")
+                    , "country_name": match.get("tournament").get("category").get("name")
+                    , "country_alpha2": match.get("tournament").get("category").get("country").get("alpha2")
+                    , "sport": match.get("tournament").get("category").get("sport").get("name")
+                    , "season_year": match.get("season").get("year")
                     , "season_id": match.get("season").get("id")
-                    , "round": match.get("roundInfo").get("round")
+                    , "round": match.get("roundInfo", {"round": None}).get("round")
                     , "start_timestamp": match.get("startTimestamp")
                     , "home_team_id": match.get("homeTeam").get("id")
                     , "home_team_name": match.get("homeTeam").get("name")
@@ -80,7 +86,19 @@ def process_statistics(statistics, match_id):
                 flattened_data.append(stats)
 
     return flattened_data
-    
+
+
+def process_categories(data):
+    countries = []
+    for row in data:
+        countries += [{
+            "country_id": row.get("id"),
+            "country_name": row.get("name"),
+            "country_alpha2": row.get("alpha2", None)
+            }]
+    return countries
+        
+        
 
 def process_incidents(incidents, match_id):
     flattened_data = []

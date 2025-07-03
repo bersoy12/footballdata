@@ -1,6 +1,6 @@
 services:
   core:
-    container_name: football-core
+    container_name: core
     build: 
       context: ./docker/core
       dockerfile: Dockerfile
@@ -18,20 +18,19 @@ services:
     cap_add:
       - SYS_ADMIN
     depends_on:
-      - db
+      - postgres-football
 
-  db:
+  postgres-football:
     # image: postgres
-    # container_name: postgres
     build:
-      context: ./docker/postgres
+      context: ./docker/postgres-football
       dockerfile: Dockerfile
-    container_name: football-db
+    container_name: postgres-football
     env_file:
       - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: football
     ports:
       - "5432:5432"
@@ -39,8 +38,35 @@ services:
       - footballdata:/var/lib/postgresql/data
       - ./scripts/postgres:/scripts
 
-  ui:
-    container_name: football-ui
+  pgadmin4:
+    build:
+      context: ./docker/pgadmin4
+      dockerfile: Dockerfile
+    container_name: pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "80:80"
+    volumes:
+      - pgadmin4:/var/lib/pgadmin
+      - ./docker/pgadmin4/servers.json:/pgadmin4/servers.json
+  
+  postgres-pgadmin:
+    build:
+      context: ./docker/postgres-pgadmin
+      dockerfile: Dockerfile
+    container_name: postgres-pgadmin
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pgadmindb
+    ports:
+      - "5433:5432"
+
+  
+  streamlit:
+    container_name: streamlit
     build:
       context: ./docker/streamlit
       dockerfile: Dockerfile
@@ -57,5 +83,23 @@ services:
     volumes:
       - ./scripts/streamlit-app:/app/streamlit-app
 
+  superset:
+    container_name: superset
+    build:
+      context: ./docker/superset
+      dockerfile: Dockerfile
+    environment:
+      - SUPERSET_SECRET_KEY=12345
+      - DATABASE_DB=football
+      - DATABASE_HOST=postgres-football
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PORT=5432
+      - SQLALCHEMY_DATABASE_URI=${FOOTBALL_DATABASE_URI}
+    ports:
+      - "8088:8088"
+
+
 volumes:
   footballdata:
+  pgadmin4:

@@ -82,6 +82,12 @@ ALTER TABLE public.incident OWNER TO postgres;
 CREATE TABLE public.match (
     match_id bigint,
     tournament_id integer,
+    unique_tournament_id integer,
+    tournament_name character varying(255),
+    country_name character varying(255),
+    alpha2 character varying(10),
+    sport character varying(50),
+    season_year character varying(50),
     season_id integer,
     round integer,
     start_timestamp bigint,
@@ -105,6 +111,24 @@ CREATE TABLE public.match (
 
 
 ALTER TABLE public.match OWNER TO postgres;
+
+--
+-- Name: country; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.country (
+    country_id bigint,
+    country_name character varying(255),
+    country_alpha2 character varying(50),
+    tournament_id integer,
+    unique_tournament_id integer,
+    tournament_name character varying(255),
+    season_id integer,
+    season_year character varying(50)
+);
+
+
+ALTER TABLE public.country OWNER TO postgres;
 
 --
 -- Name: momentum; Type: TABLE; Schema: public; Owner: postgres
