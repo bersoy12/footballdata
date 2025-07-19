@@ -30,25 +30,26 @@ class MongoDBClient:
             
             if not mongo_connection_string:
                 logger.error("MONGO_CONNECTION_STRING environment variable bulunamadı!")
-                raise ValueError("MONGO_CONNECTION_STRING gerekli")
+                return
+                # raise ValueError("MONGO_CONNECTION_STRING gerekli")
             
             # MongoDB client oluştur
             self.client = MongoClient(mongo_connection_string, serverSelectionTimeoutMS=10000)
             
             # Bağlantıyı test et
-            self.client.admin.command('ping')
-            logger.info("Cloud MongoDB bağlantısı başarılı")
+            try:
+                self.client.admin.command('ping')
+                logger.info("Cloud MongoDB bağlantısı başarılı")
+                mongo_database = os.getenv('MONGO_DATABASE', 'football_raw')
+                self.db = self.client[mongo_database]
+            except Exception as ping_err:
+                logger.error(f"MongoDB ping başarısız: {ping_err}")
+                self.client = None
+                self.db = None
             
-            # Veritabanı adını environment'dan al
-            mongo_database = os.getenv('MONGO_DATABASE', 'football_raw')
-            self.db = self.client[mongo_database]
-            
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-            logger.error(f"Cloud MongoDB bağlantı hatası: {e}")
-            raise
         except Exception as e:
-            logger.error(f"MongoDB bağlantı hatası: {e}")
-            raise
+            self.client = None
+            self.db = None
         
     def serialize_mongo_document(self, doc):
         doc = dict(doc)
@@ -263,5 +264,6 @@ class MongoDBClient:
             self.client.close()
             logger.info("MongoDB bağlantısı kapatıldı")
 
-# Global MongoDB client instance
-mongodb_client = MongoDBClient() 
+
+
+mongodb_client = MongoDBClient()

@@ -5,8 +5,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def process_tournament(tournament):
-    return {"id": tournament.get("id"), "name": tournament.get("name"), "sport": tournament.get("sport").get("name"), "alpha2": tournament.get("alpha2", "")}
+
+def process_tournaments(data):
+    tournaments = []
+    for row in data:
+        tournaments += [{"country_id": row.get("category").get("id")
+            , "tournament_id": row.get("id")
+            , "tournament_name": row.get("name")
+            , "sport": row.get('category').get("sport").get("name")}]
+    return tournaments
+
 
 def process_match(match):
     return {"match_id": match.get("id")
@@ -14,7 +22,7 @@ def process_match(match):
                     , "unique_tournament_id": match.get("tournament").get("uniqueTournament").get("id")
                     , "tournament_name": match.get("tournament").get("name")
                     , "country_name": match.get("tournament").get("category").get("name")
-                    , "country_alpha2": match.get("tournament").get("category").get("country").get("alpha2")
+                    , "alpha2": match.get("tournament").get("category").get("country").get("alpha2")
                     , "sport": match.get("tournament").get("category").get("sport").get("name")
                     , "season_year": match.get("season").get("year")
                     , "season_id": match.get("season").get("id")

@@ -15,7 +15,7 @@
       "Name": "pgadmin",
       "Group": "Servers",
       "Host": "host",
-      "Port": 5433,
+      "Port": 5432,
       "Username": "username",
       "MaintenanceDB": "database name",
       "SSLMode": "prefer",

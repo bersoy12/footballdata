@@ -5,4 +5,5 @@ scripts/streamlit-app/__pycache__/*
 *.log
 .env
 football.dump
+scripts/postgres/football.dump
 docker/pgadmin4/servers.json

@@ -18,13 +18,14 @@ INCIDENTS_URL = os.getenv('INCIDENTS_URL')
 STATISTICS_URL = os.getenv('STATISTICS_URL')
 MOMENTUM_URL = os.getenv('MOMENTUM_URL')
 UNIQUE_ROUND_URL = os.getenv('UNIQUE_ROUND_URL')
+SEASONS_URL = os.getenv('SEASONS_URL')
 
 
 scraper = CloudflareScraper()
 
 
-def get_categories() -> list:
-    logger.info(f"Fetching categories for each country.")
+def get_country_info() -> list:
+    logger.info(f"Fetching country info.")
     try:
         response = scraper.scrape_website(CATEGORIES_URL)
         data = response.get('categories')
@@ -32,12 +33,24 @@ def get_categories() -> list:
     except Exception as e:
         logger.error(f"Error fetching categories: {e}")
         return []
-    
+
+
 def get_tournaments_by_country(country_id: int) -> list:
     logger.info(f"Fetching tournaments for the country specified.")
     try:
         response = scraper.scrape_website(TOURNAMENTS_BY_COUNTRY_URL.format(country_id))
-        data = response.get('groups')[0]
+        data = response.get('groups')[0].get('uniqueTournaments')
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching tournaments by country: {e}")
+        return []
+
+
+def get_season(tournament_id: int) -> list:
+    logger.info(f"Fetching season for the tournament id specified.")
+    try:
+        response = scraper.scrape_website(SEASONS_URL.format(tournament_id))
+        data = response.get('featuredEvents')[0]
         return data
     except Exception as e:
         logger.error(f"Error fetching tournaments by country: {e}")
@@ -108,10 +121,6 @@ def get_top_tournaments(country_alpha2: str) -> list:
     except Exception as e:
         logger.error(f"Error fetching tournaments for {country_alpha2}: {e}")
         return []
-
-
-def get_season(country_alpha2: str) -> list:
-    pass
 
 
 def get_match_events(match_id: int) -> list:

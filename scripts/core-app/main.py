@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Body, Query
-from scraper import get_round_matches, get_match_events, get_match_statistics, get_match_graph, get_categories, get_top_tournaments, get_rounds_unique_tournament
-from processing import process_statistics, process_incidents, process_match, process_tournament, process_match_data, process_graphs, process_categories
+from scraper import get_round_matches, get_match_events, get_match_statistics, get_match_graph, get_country_info, get_top_tournaments, get_rounds_unique_tournament, get_tournaments_by_country
+from processing import process_statistics, process_incidents, process_match, process_match_data, process_graphs, process_categories, process_tournaments
 from enum import Enum
 import pandas as pd
 from typing import List, Dict, Optional, Any
@@ -42,15 +42,29 @@ class PayloadType(str, Enum):
 #     return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
 
 
-@app.get('/ligleri-getir')
-def ligleri_getir_endpoint():
-    return ligleri_getir()
+@app.get('/ulke-bilgisi-getir')
+def ulke_bilgisi_getir_endpoint():
+    return ulke_bilgisi_getir()
 
 
-def ligleri_getir():
-    categories = get_categories()
+def ulke_bilgisi_getir():
+    categories = get_country_info()
     processed_categories = process_categories(categories)
     return processed_categories
+
+
+@app.get('/ligleri-getir')
+def ligleri_getir_endpoint(
+    country_id: int
+    ):
+    return ligleri_getir(country_id)
+    
+
+def ligleri_getir(country_id: int):
+    tournaments = get_tournaments_by_country(country_id)
+    processed_tournaments = process_tournaments(tournaments)
+    return processed_tournaments
+    
 
 
 @app.get("/maclari-al")
