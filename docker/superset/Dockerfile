@@ -1,13 +1,9 @@
-FROM apache/superset:latest
+FROM apache/superset:3.0.2
 
 USER root
+RUN apt-get update && apt-get upgrade -y && apt-get clean
 
-RUN pip install psycopg2-binary
-
-COPY ./docker-entrypoint.sh /app/
-
-RUN chmod +x /app/docker-entrypoint.sh
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 USER superset
-
-ENTRYPOINT [ "/app/docker-entrypoint.sh" ]

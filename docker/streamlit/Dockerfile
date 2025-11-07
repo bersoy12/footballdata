@@ -12,7 +12,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    software-properties-common \
+    # software-properties-common \
     git \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*

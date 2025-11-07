@@ -19,7 +19,7 @@ STATISTICS_URL = os.getenv('STATISTICS_URL')
 MOMENTUM_URL = os.getenv('MOMENTUM_URL')
 UNIQUE_ROUND_URL = os.getenv('UNIQUE_ROUND_URL')
 SEASONS_URL = os.getenv('SEASONS_URL')
-
+TEAM_STATS_URL = os.getenv('TEAM_STATS_URL')
 
 scraper = CloudflareScraper()
 
@@ -158,6 +158,26 @@ def get_match_statistics(match_id: int) -> list:
         return response
     except Exception as e:
         logger.error(f"Error fetching statistics for match {match_id}: {e}")
+        return []
+    
+def get_team_statistics(team_id: int, tournament_id: int, season_id: int) -> list:
+    """
+    Belirli bir takımın sezonluk istatistiklerini getirir.
+
+    Args:
+        team_id (int): Takımın ID'si.
+        tournament_id (int): Ligin ID'si.
+        season_id (int): Sezonun ID'si.
+
+    Returns:
+        list: Takım istatistiklerinin listesi.
+    """
+    logger.info(f"Fetching statistics for team_id: {team_id}, tournament_id: {tournament_id}, season_id: {season_id}")
+    try:
+        response = scraper.scrape_website(TEAM_STATS_URL.format(team_id, tournament_id, season_id))
+        return response
+    except Exception as e:
+        logger.error(f"Error fetching statistics for team {team_id}, tournament {tournament_id}, season {season_id}: {e}")
         return []
 
 

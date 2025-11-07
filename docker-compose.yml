@@ -18,22 +18,23 @@ services:
     cap_add:
       - SYS_ADMIN
     depends_on:
-      - postgres-football
+      - postgres
 
-  postgres-football:
+  postgres:
     # image: postgres
     build:
-      context: ./docker/postgres-football
+      context: ./docker/postgres
       dockerfile: Dockerfile
-    container_name: footballdb
+    container_name: postgres
     env_file:
       - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: football
+      POSTGRES_MULTIPLE_DATABASES: football,superset_metadata
     ports:
-      - "5435:5432"
+      - "5432:5432"
     volumes:
       - footballdata:/var/lib/postgresql/data
       - ./scripts/postgres:/scripts
@@ -57,9 +58,6 @@ services:
       - N8N_PROTOCOL=http
     volumes:
       - n8n_data:/home/node/.n8n
-    depends_on:
-      - postgres-football
-
 
   pgadmin4:
     build:
@@ -75,61 +73,52 @@ services:
       - pgadmin4:/var/lib/pgadmin
       - ./docker/pgadmin4/servers.json:/pgadmin4/servers.json
   
-  streamlit:
-    container_name: streamlit
-    build:
-      context: ./docker/streamlit
-      dockerfile: Dockerfile
-    env_file:
-      - scripts/streamlit-app/.env
-    environment:
-      - WATCHDOG_TIMEOUT=60
-      - STREAMLIT_SERVER_WATCH_DIRS=true
-      - STREAMLIT_SERVER_HEADLESS=true
-      - STREAMLIT_SERVER_ENABLE_CORS=false
-      - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./scripts/streamlit-app:/app/streamlit-app
-
-  postgres-superset:
-    build:
-      context: ./docker/postgres-superset
-      dockerfile: Dockerfile
-    container_name: supersetdb
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_DB: supersetdb
-    volumes:
-      - superset_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U superset"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "5433:5432"
+  # streamlit:
+  #   container_name: streamlit
+  #   build:
+  #     context: ./docker/streamlit
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - scripts/streamlit-app/.env
+  #   environment:
+  #     - WATCHDOG_TIMEOUT=60
+  #     - STREAMLIT_SERVER_WATCH_DIRS=true
+  #     - STREAMLIT_SERVER_HEADLESS=true
+  #     - STREAMLIT_SERVER_ENABLE_CORS=false
+  #     - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+  #   ports:
+  #     - "8501:8501"
+  #   volumes:
+  #     - ./scripts/streamlit-app:/app/streamlit-app
 
   
   superset:
-    container_name: superset
+    # image: apache/superset:latest
     build:
       context: ./docker/superset
       dockerfile: Dockerfile
+    container_name: superset
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+      - SUPERSET_DATABASE_URI=${SUPERSETDB_URI}
+      - PYTHONPATH=/app/pythonpath
     ports:
       - "8088:8088"
-    volumes:
-      - ./docker/superset/superset_config.py:/app/superset_config.py
     depends_on:
-      - postgres-superset
+      - postgres
+    volumes:
+      - superset_home:/app/superset_home
+    command: >
+      /bin/bash -c "
+        superset db upgrade &&
+        superset fab create-admin --username admin --firstname berkay --lastname ersoy --email admin@superset.com --password admin123 &&
+        superset init &&
+        superset run -h 0.0.0.0 -p 8088
+      "
 
 
 volumes:
   footballdata:
   pgadmin4:
-  superset_data:
   n8n_data:
+  superset_home:

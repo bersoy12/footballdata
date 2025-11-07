@@ -1,6 +1,6 @@
 ## Get all table names
 
-````sql
+```sql
 SELECT table_schema, table_name
 FROM information_schema.tables
 WHERE table_type = 'BASE TABLE'
@@ -22,4 +22,15 @@ ORDER BY
 
 
 SELECT DISTINCT season_id FROM match;
+
+
+
+```sql
+ALTER TABLE public.country
+DROP COLUMN IF EXISTS tournament_id,
+DROP COLUMN IF EXISTS unique_tournament_id,
+DROP COLUMN IF EXISTS tournament_name,
+DROP COLUMN IF EXISTS season_id,
+DROP COLUMN IF EXISTS season_year;
+```
 

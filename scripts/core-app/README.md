@@ -93,6 +93,12 @@ SELECT * FROM match
     SELECT min(ctid) FROM match 
     GROUP BY match_id, start_timestamp, home_team_id, away_team_id, home_score_normaltime, away_score_normaltime, round
 );
+
+
+SELECT *, COUNT(*) 
+FROM statistic
+GROUP BY match_id, period, group_name, statistics_name, value_type, key, statistics_type, away_value, home_value
+HAVING COUNT(*) > 1;
 ```
 
 ### Database dump almak için terminal komutu

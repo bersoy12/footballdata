@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 import logging
 from pathlib import Path
+import numpy as np
 
 load_dotenv()
 
@@ -86,7 +87,7 @@ def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_colum
     table = Table(table_name, metadata, autoload_with=engine)
     
     df = df.where(pd.notnull(df), None)
-    df = df.replace({pd.NA: None, pd.NaT: None})
+    df = df.replace({np.nan: None, pd.NA: None, pd.NaT: None})
     
     rows = df.to_dict(orient='records')
     
@@ -124,7 +125,6 @@ def does_exist(data, column_name, table_name, conn=conn):
     result = conn.execute(text(f"SELECT EXISTS (SELECT 1 FROM {table_name} WHERE {column_name} = {data})"))  # eğer :{data} olursa %(52)s gibi bi şey oluyor
     exist = result.scalar()
     return exist
-    
 
 def fetch_data(column_name, table_name, engine = engine, conn = conn) -> list:
     """

@@ -1,16 +1,18 @@
 from fastapi import FastAPI, Body, Query
-from scraper import get_round_matches, get_match_events, get_match_statistics, get_match_graph, get_country_info, get_top_tournaments, get_rounds_unique_tournament, get_tournaments_by_country
-from processing import process_statistics, process_incidents, process_match, process_match_data, process_graphs, process_categories, process_tournaments
+from scraper import get_round_matches, get_match_events, get_team_statistics, get_match_statistics, get_match_graph, get_country_info, get_top_tournaments, get_rounds_unique_tournament, get_tournaments_by_country
+from processing import process_statistics, process_incidents, process_match, process_match_data, process_graphs, process_categories, process_tournaments, process_team_stats
 from enum import Enum
 import pandas as pd
 from typing import List, Dict, Optional, Any
 from sql_alchemy import insert_table, fetch_data
 from mongodb_client import mongodb_client
 from concurrent.futures import ThreadPoolExecutor
+from cloudflarescraper import CloudflareScraper
 from itertools import chain
 import logging
 import json
-from bson import ObjectId
+import time
+from typing import Union
 
 def serialize_mongo_document(doc):
     doc["_id"] = str(doc["_id"])
@@ -27,19 +29,141 @@ class PayloadType(str, Enum):
     events = "Olaylar"
 
 
-# @app.post("/veri-cek")
-# def veri_cek_endpoint(
-#     tournament_id: Optional[int] = None,
-#     country_alpha: Optional[str] = None,
-#     season_id: Optional[int] = None, 
-#     start_week: Optional[int] = None, 
-#     end_week: Optional[int] = None, 
-#     update_tournaments: Optional[bool] = False
-# ):
-#     """
-#     Belirli bir lig ve sezon için haftalık maç verilerini paralel olarak işler ve veritabanına kaydeder.
-#     """
-#     return veri_cek(tournament_id, country_alpha, season_id, start_week, end_week, update_tournaments)
+@app.post("/scape-website")
+async def scrape_website_endpoint(url: str = Body(..., embed=True)):
+    scraper_instance = CloudflareScraper()
+    result = scraper_instance.scrape_website(url)
+    return result
+
+
+# --- Orchestration pipeline ----
+def _extract_match_ids_from_response(resp: Union[dict, list]) -> list:
+    """Recursively extract all match_id values from nested JSON using JSONPath-like traversal.
+    Implements a simple search for keys named 'match_id' anywhere in the structure.
+    """
+    ids = []
+    if isinstance(resp, dict):
+        for k, v in resp.items():
+            if k == 'match_id' and (isinstance(v, int) or (isinstance(v, str) and v.isdigit())):
+                ids.append(int(v))
+            else:
+                ids.extend(_extract_match_ids_from_response(v))
+    elif isinstance(resp, list):
+        for item in resp:
+            ids.extend(_extract_match_ids_from_response(item))
+    return ids
+
+
+@app.post('/pipeline/run')
+def pipeline_run_endpoint(
+    tournament_id: Optional[int] = Body(None),
+    season_ids: Optional[List[int]] = Body(None),
+    by_date: bool = Body(True)
+):
+    """Orchestrates the full flow you described for one tournament across one or many seasons.
+
+    Behavior:
+    1. Calls internal maclari_al to fetch rounds (by_date if specified).
+    2. Sends response(s) to mac_verisini_isle (internal function) to process data.
+    3. Inserts processed matches into 'match' table via varitabanina_ekle wrapper.
+    4. Extracts match_ids from processed data.
+    5. Calls veri-topla three times for payloads: İstatistik, Momentum Grafiği, Olaylar with insert_simultaneously=True.
+
+    Returns a summary dict with counts and any errors encountered.
+    """
+    summary = {
+        'tournament_id': tournament_id,
+        'seasons': {},
+        'errors': []
+    }
+
+    if not tournament_id:
+        return {"error": "tournament_id is required"}
+
+    if not season_ids:
+        season_ids = [None]
+
+    for season_id in season_ids:
+        try:
+            # 1. fetch matches
+            matches = maclari_al(tournament_id=tournament_id, season_id=season_id, by_date=by_date)
+
+            # 2. process each match through mac_verisini_isle (reuse existing function)
+            processed_list = []
+            for m in matches:
+                processed = mac_verisini_isle(m, insert_to_mongo=False)
+                if processed is not None:
+                    processed_list.append(processed)
+
+            # 3. insert into 'match' table
+            if processed_list:
+                df = pd.DataFrame(processed_list)
+                varitabanina_ekle(df, table_name='match')
+
+            # 4. extract match_ids
+            match_ids = _extract_match_ids_from_response(processed_list)
+            # dedupe
+            match_ids = list(dict.fromkeys(match_ids))
+
+            # 5. call veri-topla three times, but skip match_ids that already exist in the target tables
+            payloads = ['İstatistik', 'Momentum Grafiği', 'Olaylar']
+            table_map = {'İstatistik': 'statistic', 'Momentum Grafiği': 'momentum', 'Olaylar': 'incident'}
+            for payload in payloads:
+                try:
+                    if not match_ids:
+                        logger.info(f"No match_ids to process for payload {payload} (season {season_id}).")
+                        continue
+
+                    target_table = table_map.get(payload)
+                    # fetch existing match_ids from DB for this table
+                    try:
+                        existing = fetch_data('match_id', target_table)
+                    except Exception:
+                        existing = None
+
+                    existing_ids = set()
+                    if existing:
+                        # fetch_data may return list of ints or list of dicts
+                        for item in existing:
+                            if isinstance(item, dict):
+                                # try common shapes
+                                if 'match_id' in item:
+                                    val = item.get('match_id')
+                                else:
+                                    # fallback: take first value
+                                    vals = list(item.values())
+                                    val = vals[0] if vals else None
+                            else:
+                                val = item
+                            try:
+                                existing_ids.add(int(val))
+                            except Exception:
+                                continue
+
+                    # remove ids that are already present
+                    to_process = [mid for mid in match_ids if mid not in existing_ids]
+                    if not to_process:
+                        logger.info(f"All match_ids already present for table {target_table}; skipping payload {payload} for season {season_id}.")
+                        continue
+
+                    # call the processing endpoint internally for remaining match ids
+                    istatistikleri_al_endpoint(to_process, payload=PayloadType(payload), insert_simultaneously=True, insert_to_mongo=False)
+
+                except Exception as e:
+                    logger.error(f"Error while running payload {payload} for season {season_id}: {e}")
+                    summary['errors'].append(str(e))
+
+            summary['seasons'][str(season_id)] = {
+                'fetched_matches': len(matches) if matches else 0,
+                'processed_matches': len(processed_list),
+                'match_ids': match_ids
+            }
+
+        except Exception as e:
+            logger.exception(f"Pipeline error for season {season_id}: {e}")
+            summary['errors'].append(str(e))
+
+    return summary
 
 
 @app.get('/ulke-bilgisi-getir')
@@ -66,6 +190,21 @@ def ligleri_getir(country_id: int):
     return processed_tournaments
     
 
+@app.get('/takim-istatistiklerini-getir')
+def takim_istatistiklerini_getir_endpoint(
+    team_id: int,
+    tournament_id: int,
+    season_id: int,
+    insert_to_db: bool = False
+    ):
+    team_stats = get_team_statistics(team_id, tournament_id, season_id)
+    processed_team_stats = process_team_stats(team_stats, team_id, tournament_id, season_id)
+    if insert_to_db:
+        df = pd.DataFrame(processed_team_stats)
+        varitabanina_ekle(df, table_name='team_statistics_overall')
+    return processed_team_stats
+
+
 
 @app.get("/maclari-al")
 def maclari_al_endpoint(
@@ -74,14 +213,15 @@ def maclari_al_endpoint(
     week: Optional[int] = None,
     start_week: Optional[int] = None,
     end_week: Optional[int] = None,
-    by_date: Optional[bool] = None
+    by_date: Optional[bool] = None,
+    since_timestamp: Optional[int] = Query(default=None, description="Current timestamp {}".format(int(time.time())))
 ):
     """
     Belirtilen hafta ya da haftalarda oynanan tüm maçları çeker.
     """
     if by_date:
         logger.info(f"Günlük olarak maçlar alınıyor...")
-        return maclari_al(tournament_id, season_id, by_date=by_date)
+        return maclari_al(tournament_id, season_id, by_date=by_date, since_timestamp=since_timestamp)
     elif start_week:
         matches = []
         for week in range(start_week, end_week + 1):
@@ -99,13 +239,20 @@ def maclari_al_endpoint(
 def maclari_al(tournament_id: Optional[int] = None,
                season_id: Optional[int] = None,
                week: Optional[int] = None,
-               by_date: Optional[bool] = None):
+               by_date: Optional[bool] = None,
+               since_timestamp: Optional[int] = None):
     """
     Belirli bir lig, sezon ve haftadaki maçları getirir.
     """
     if by_date:
+        if since_timestamp:
+            data = get_rounds_unique_tournament(tournament_id, season_id)
+            filtered = [
+                m for m in data["events"]
+                if m.get("startTimestamp", 0) > since_timestamp
+                ]
+            return filtered
         return get_rounds_unique_tournament(tournament_id, season_id)
-
     return get_round_matches(tournament_id, season_id, week)
 
 

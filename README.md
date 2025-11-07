@@ -45,3 +45,17 @@ Bazen farklı uygulamalar aynı portlarda çakıştığı için veritabanına ba
 ```sh
 netstat -ano | findstr 5432
 ```
+
+
+uygulama ilk kez build alındıktan sonra
+
+1. veritabanı şeması yüklenmeli.
+
+docker exec -it postgres bash -> postgres servisinin içerisine girilir.
+
+
+psql -U postgres -d football -f /scripts/schema_utf8.sql -> bununla football veritabanına bağlanılır ve schema_utf8.sql dosyasına göre tabloları oluşturur.
+
+psql -U postgres -d football -> bu komut girildiğinde football veritabanına bağlanmış olur.
+
+\d yazılarak tablo bilgileri görülebilir.
