@@ -8,3 +8,4 @@ psycopg2-binary
 langchain
 langchain_community
 langchain_openai
+tornado>=6.5.3 # not directly required, pinned by Snyk to avoid a vulnerability
