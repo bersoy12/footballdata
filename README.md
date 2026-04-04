@@ -7,10 +7,24 @@
 docker compose up -d
 ```
 
+
+# Dikkat
+Aşağıdaki komut bütün containerları siler.
+
+```
+docker compose down
+```
+
+
 # Link to Swagger UI
 
 http://localhost:8000/docs#/
 
+# n8n latest version re-build
+
+```
+docker compose up -d --build n8n
+```
 
 # Superset Kurulumu
 ```shell

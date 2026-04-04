@@ -8,7 +8,7 @@ WHERE table_type = 'BASE TABLE'
 ORDER BY table_schema, table_name;
 ```
 
-
+```sql
 SELECT
     column_name,
     data_type
@@ -18,10 +18,11 @@ WHERE
     table_name = 'match'
 ORDER BY
     ordinal_position;
+```
 
-
-
+```sql
 SELECT DISTINCT season_id FROM match;
+```
 
 
 
@@ -34,3 +35,24 @@ DROP COLUMN IF EXISTS season_id,
 DROP COLUMN IF EXISTS season_year;
 ```
 
+
+
+yeni kolon ekleme
+```sql
+ALTER TABLE public.match
+ADD COLUMN country_id integer;
+
+UPDATE public.match SET country_id = 0; -- veya uygun değer
+
+ALTER TABLE public.match
+ALTER COLUMN country_id SET NOT NULL;
+```
+
+
+foreign key tanımlama
+```sql
+ALTER TABLE public.match
+ADD CONSTRAINT fk_country
+FOREIGN KEY (country_id)
+REFERENCES country(country_id);
+```

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-TOURNAMENTS_BY_COUNTRY_URL=os.getenv('TOURNAMENTS_BY_COUNTRY_URL')
+UNIQUE_TOURNAMENTS_URL=os.getenv('UNIQUE_TOURNAMENTS_URL')
 CATEGORIES_URL = os.getenv('CATEGORIES_URL')
 TOP_TOURNAMENTS_URL = os.getenv('TOP_TOURNAMENTS_URL')
 STANDINGS_URL = os.getenv('STANDINGS_URL')
@@ -18,10 +18,42 @@ INCIDENTS_URL = os.getenv('INCIDENTS_URL')
 STATISTICS_URL = os.getenv('STATISTICS_URL')
 MOMENTUM_URL = os.getenv('MOMENTUM_URL')
 UNIQUE_ROUND_URL = os.getenv('UNIQUE_ROUND_URL')
+FEATURED_EVENTS_URL = os.getenv('FEATURED_EVENTS_URL')
 SEASONS_URL = os.getenv('SEASONS_URL')
 TEAM_STATS_URL = os.getenv('TEAM_STATS_URL')
+SCHEDULED_EVENTS_URL = os.getenv('SCHEDULED_EVENTS_URL')
+TEAMS_URL = os.getenv('TEAMS_URL')
 
 scraper = CloudflareScraper()
+
+def get_teams(unique_tournament_id: int, season_id: int) -> list:
+    logger.info(f"Fetching teams for tournament {unique_tournament_id} season {season_id}.")
+    try:
+        response = scraper.scrape_website(TEAMS_URL.format(unique_tournament_id, season_id))
+        if isinstance(response, dict) and 'error' in response:
+            error = response['error']
+            logger.error(f"API error {error.get('code')}: {error.get('message')}")
+            return []
+        data = response.get('standings')
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching teams: {e}")
+        return []
+
+
+def get_tournaments(country_id: int, date: str) -> list:
+    logger.info(f"Fetching tournaments.")
+    try:
+        response = scraper.scrape_website(SCHEDULED_EVENTS_URL.format(country_id, date))
+        if isinstance(response, dict) and 'error' in response:
+            error = response['error']
+            logger.error(f"API error {error.get('code')}: {error.get('message')}")
+            return []
+        data = response.get('events')
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching tournaments: {e}")
+        return []
 
 
 def get_country_info() -> list:
@@ -35,10 +67,10 @@ def get_country_info() -> list:
         return []
 
 
-def get_tournaments_by_country(country_id: int) -> list:
+def get_unique_tournaments(country_id: int) -> list:
     logger.info(f"Fetching tournaments for the country specified.")
     try:
-        response = scraper.scrape_website(TOURNAMENTS_BY_COUNTRY_URL.format(country_id))
+        response = scraper.scrape_website(UNIQUE_TOURNAMENTS_URL.format(country_id))
         data = response.get('groups')[0].get('uniqueTournaments')
         return data
     except Exception as e:
@@ -46,16 +78,32 @@ def get_tournaments_by_country(country_id: int) -> list:
         return []
 
 
-def get_season(tournament_id: int) -> list:
-    logger.info(f"Fetching season for the tournament id specified.")
+def get_featured_events(tournament_id: int) -> list:
+    logger.info(f"Fetching featured events for the tournament id specified.")
     try:
         response = scraper.scrape_website(SEASONS_URL.format(tournament_id))
         data = response.get('featuredEvents')[0]
         return data
     except Exception as e:
-        logger.error(f"Error fetching tournaments by country: {e}")
+        logger.error(f"Error fetching featured events by country: {e}")
         return []
-    
+
+
+def get_seasons(unique_tournament_id: int) -> list:
+    logger.info(f"Fetching seasons for country id.")
+    try:
+        response = scraper.scrape_website(SEASONS_URL.format(unique_tournament_id))
+        if response.get('seasons'):
+            data = response.get('seasons')
+            return data
+        else:
+            return []
+    except Exception as e:
+        logger.error(f"Error fetching seasons by country: {e}")
+        return []
+
+
+
 def get_round_matches(tournament_id: int, season_id: int, week: int) -> list:
     """
     Belirli bir lig, sezon ve haftadaki maçları getirir.
@@ -160,7 +208,7 @@ def get_match_statistics(match_id: int) -> list:
         logger.error(f"Error fetching statistics for match {match_id}: {e}")
         return []
     
-def get_team_statistics(team_id: int, tournament_id: int, season_id: int) -> list:
+def get_team_statistics(team_id: int, unique_tournament_id: int, season_id: int) -> list:
     """
     Belirli bir takımın sezonluk istatistiklerini getirir.
 
@@ -172,12 +220,12 @@ def get_team_statistics(team_id: int, tournament_id: int, season_id: int) -> lis
     Returns:
         list: Takım istatistiklerinin listesi.
     """
-    logger.info(f"Fetching statistics for team_id: {team_id}, tournament_id: {tournament_id}, season_id: {season_id}")
+    logger.info(f"Fetching statistics for team_id: {team_id}, tournament_id: {unique_tournament_id}, season_id: {season_id}")
     try:
-        response = scraper.scrape_website(TEAM_STATS_URL.format(team_id, tournament_id, season_id))
+        response = scraper.scrape_website(TEAM_STATS_URL.format(team_id, unique_tournament_id, season_id))
         return response
     except Exception as e:
-        logger.error(f"Error fetching statistics for team {team_id}, tournament {tournament_id}, season {season_id}: {e}")
+        logger.error(f"Error fetching statistics for team {team_id}, tournament {unique_tournament_id}, season {season_id}: {e}")
         return []
 
 

@@ -13,3 +13,4 @@ numpy
 requests
 python-multipart
 pymongo
+vanna

@@ -82,6 +82,7 @@ def log_error(error_type: str, error_message: str, table_name: str, row_data: di
     
     error_logger.error(f"Veritabanı hatası - Tablo: {table_name}, Hata: {error_message}")
 
+
 def insert_table(df, table_name, engine = engine, conn = conn, on_conflict_columns: list = [], on_conflict_entire_columns: bool = False):
     metadata = MetaData()
     table = Table(table_name, metadata, autoload_with=engine)
@@ -132,8 +133,24 @@ def fetch_data(column_name, table_name, engine = engine, conn = conn) -> list:
     """
     metadata = MetaData()
     match_table = Table(table_name, metadata, autoload_with=engine)
-    stmt = select(match_table.c[column_name])
-    result = conn.execute(stmt).fetchall()
-    data = [row[0] for row in result]
+    # stmt = select(match_table.c[column_name])
+    # result = conn.execute(stmt).fetchall()
+    # data = [row[0] for row in result]
 
-    return data
+    # return data
+        # Çok kolon desteği: "match_id,round" veya ["match_id", "round"]
+    if isinstance(column_name, str) and "," in column_name:
+        cols = [c.strip() for c in column_name.split(",")]
+    elif isinstance(column_name, list):
+        cols = column_name
+    else:
+        cols = [column_name]
+    
+    if len(cols) == 1:
+        stmt = select(match_table.c[cols[0]])
+        result = conn.execute(stmt).fetchall()
+        return [row[0] for row in result]
+    else:
+        stmt = select(*[match_table.c[c] for c in cols])
+        result = conn.execute(stmt).fetchall()
+        return [dict(zip(cols, row)) for row in result]  # → list of dict

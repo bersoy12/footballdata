@@ -135,14 +135,59 @@ def process_team_stats(team_stats, team_id, tournament_id, season_id):
     return [flattened_data]
 
 
+def process_teams_from_standing(data):
+    teams = []
+    if data[0].get("type") == "total":
+        country_id = data[0].get("tournament").get("category").get("id")
+        tournament_id = data[0].get("tournament").get("id")
+        unique_tournament_id = data[0].get("tournament").get("uniqueTournament").get("id")
+        for row in data[0].get("rows"):
+            teams += [{"team_id": row.get("team").get("id")
+                , "team_name": row.get("team").get("name")
+                , "name_code": row.get("team").get("nameCode")
+                , "sport_name": row.get("team").get("sport").get("name")
+                , "disabled": row.get("team").get("disabled")
+                , "national": row.get("team").get("national")
+                , "sport_id": row.get("team").get("sport").get("id")
+                # , "country": row.get("team").get("country").get("name")
+                , "team_colors_primary": row.get("team").get("teamColors").get("primary")
+                , "team_colors_secondary": row.get("team").get("teamColors").get("secondary")
+                , "country_id": country_id
+                , "tournament_id": tournament_id
+                , "unique_tournament_id": unique_tournament_id
+            }]
+    return teams
 
-def process_tournaments(data):
+
+def process_tournaments(data, date):
+    tournaments = []
+    if data:
+        for row in data:
+            tournaments += [{"country_id": row.get("tournament").get("category").get("id")
+                , "tournament_name": row.get("tournament").get("name")
+                , "tournament_id": row.get("tournament").get("id")
+                , "sport": row.get("tournament").get("category").get("sport").get("name")
+                , "season_id": row.get("season", {}).get("id", "")
+                , "season_year": row.get("season", {}).get("year", "")
+                , "season_name": row.get("season", {}).get("name", "")
+                , "round_info": row.get("roundInfo", {}).get("round", "")
+                , "gender": row.get("eventFilters", {}).get("gender", [""])[0]
+                , "date": date
+            }]
+    else:
+        return []
+    return list({v['season_id']:v for v in tournaments}.values())
+
+
+def process_unique_tournaments(data):
     tournaments = []
     for row in data:
         tournaments += [{"country_id": row.get("category").get("id")
-            , "tournament_id": row.get("id")
+            , "unique_tournament_id": row.get("id")
             , "tournament_name": row.get("name")
-            , "sport": row.get('category').get("sport").get("name")}]
+            , "sport_id": row.get('category').get("sport").get("id")
+            , "sport_name": row.get('category').get("sport").get("name")
+            }]
     return tournaments
 
 
@@ -150,11 +195,12 @@ def process_match(match):
     return {"match_id": match.get("id")
                     , "tournament_id": match.get("tournament").get("id")
                     , "unique_tournament_id": match.get("tournament").get("uniqueTournament").get("id")
-                    , "tournament_name": match.get("tournament").get("name")
-                    , "country_name": match.get("tournament").get("category").get("name")
-                    , "alpha2": match.get("tournament").get("category").get("country").get("alpha2")
-                    , "sport": match.get("tournament").get("category").get("sport").get("name")
-                    , "season_year": match.get("season").get("year")
+                    # , "tournament_name": match.get("tournament").get("name")
+                    # , "country_name": match.get("tournament").get("category").get("name")
+                    , "country_id": match.get("tournament").get("category").get("id")
+                    # , "alpha2": match.get("tournament").get("category").get("country").get("alpha2")
+                    # , "sport": match.get("tournament").get("category").get("sport").get("name")
+                    # , "season_year": match.get("season").get("year")
                     , "season_id": match.get("season").get("id")
                     , "round": match.get("roundInfo", {"round": None}).get("round")
                     , "start_timestamp": match.get("startTimestamp")
@@ -291,4 +337,15 @@ def process_graphs(graphs, match_id):
     return flattened_data
 
 
+def process_seasons(data, unique_tournament_id):
+    seasons = []
     
+    for season in data:
+        seasons += [{
+            "season_id": season.get("id")
+            , "name": season.get("name")
+            , "year": season.get("year")
+            , "unique_tournament_id": unique_tournament_id
+        }]
+
+    return seasons

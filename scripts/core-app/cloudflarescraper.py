@@ -10,6 +10,8 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
 import logging
+import re
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,27 @@ class CloudflareScraper:
     def __init__(self):
         self.driver = None
         self.env = load_dotenv()
+
+    def _detect_chrome_major(self) -> int | None:
+        candidates = [
+            (os.environ.get("CHROME_BIN"), ["--version"]),
+            ("chromium", ["--version"]),
+            ("chromium-browser", ["--version"]),
+            ("google-chrome", ["--version"]),
+            ("google-chrome-stable", ["--version"]),
+        ]
+
+        for exe, args in candidates:
+            if not exe:
+                continue
+            try:
+                out = subprocess.check_output([exe, *args], stderr=subprocess.STDOUT, text=True).strip()
+                m = re.search(r"(\d+)\.", out)
+                if m:
+                    return int(m.group(1))
+            except Exception:
+                continue
+        return None
         
     def start_browser(self):
         """Tarayıcıyı başlatır ve Cloudflare korumasını atlatır"""
@@ -43,11 +66,23 @@ class CloudflareScraper:
             options.add_argument('--no-zygote')
             options.add_argument('--single-process')
             options.add_argument('--disable-features=site-per-process')
+            # Prefer distro packages (chromium + chromium-driver) to avoid Chrome/Driver drift
+            options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 
         service = Service(log_path='chrome_driver.log')
         service.service_args = ['--log-level=0'] 
-        
-        self.driver = uc.Chrome(options=options, service=service)
+
+        chrome_major = self._detect_chrome_major()
+        uc_kwargs = {
+            "options": options,
+            "service": service,
+        }
+        if os.environ.get("DOCKER_ENV"):
+            uc_kwargs["driver_executable_path"] = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+        if chrome_major:
+            uc_kwargs["version_main"] = chrome_major
+
+        self.driver = uc.Chrome(**uc_kwargs)
         self.driver.set_page_load_timeout(30)
         
     def scrape_website(self, url):
@@ -92,5 +127,3 @@ class CloudflareScraper:
             except:
                 pass
             self.driver = None
-
-

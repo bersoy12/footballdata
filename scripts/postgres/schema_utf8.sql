@@ -80,14 +80,15 @@ ALTER TABLE public.incident OWNER TO postgres;
 --
 
 CREATE TABLE public.match (
-    match_id bigint,
+    match_id bigint PRIMARY KEY,
     tournament_id integer,
     unique_tournament_id integer,
-    tournament_name character varying(255),
-    country_name character varying(255),
-    alpha2 character varying(10),
-    sport character varying(50),
-    season_year character varying(50),
+    -- tournament_name character varying(255),
+    -- country_name character varying(255),
+    country_id integer,
+    -- alpha2 character varying(10),
+    -- sport character varying(50),
+    -- season_year character varying(50),
     season_id integer,
     round integer,
     start_timestamp bigint,
@@ -117,7 +118,7 @@ ALTER TABLE public.match OWNER TO postgres;
 --
 
 CREATE TABLE public.country (
-    country_id bigint,
+    country_id bigint PRIMARY KEY,
     country_name character varying(255),
     country_alpha2 character varying(50),
     -- tournament_id integer,
@@ -148,8 +149,8 @@ ALTER TABLE public.momentum OWNER TO postgres;
 --
 
 CREATE TABLE public.season (
-    season_id integer,
-    tournament_id integer,
+    season_id integer PRIMARY KEY,
+    unique_tournament_id integer,
     name character varying(255),
     year character varying(10)
 );
@@ -181,11 +182,23 @@ ALTER TABLE public.statistic OWNER TO postgres;
 --
 
 CREATE TABLE public.team (
-    id integer,
-    name character varying(255),
-    slug character varying(255),
-    short_name character varying(50),
-    country_alpha3 character varying(3)
+    -- id integer,
+    team_id integer,
+    -- name character varying(255),
+    team_name character varying(255),
+    name_code character varying(50),
+    -- slug character varying(255),
+    -- short_name character varying(50),
+    -- country_alpha3 character varying(3)
+    sport_id integer,
+    sport_name character varying(50),
+    disabled boolean,
+    national boolean,
+    country_id integer,
+    tournament_id integer,
+    unique_tournament_id integer,
+    team_colors_primary character varying(50),
+    team_colors_secondary character varying(50)
 );
 
 
@@ -199,7 +212,13 @@ CREATE TABLE public.tournament (
     country_id integer NOT NULL,
     tournament_id integer NOT NULL,
     tournament_name character varying(255),
-    sport character varying(50)
+    sport character varying(50),
+    season_id double precision,
+    season_year character varying(50),
+    season_name character varying(255),
+    round_info double precision,
+    gender character varying(50),
+    date DATE DEFAULT CURRENT_DATE
 );
 
 
@@ -208,7 +227,7 @@ ALTER TABLE public.tournament OWNER TO postgres;
 
 
 CREATE TABLE public.team_statistics_overall (
-    id bigint PRIMARY KEY,
+    id integer,
     team_id integer,
     unique_tournament_id integer,
     tournament_id integer,
@@ -333,6 +352,17 @@ CREATE TABLE public.team_statistics_overall (
 -- CREATE INDEX idx_team_statistics_season ON public.team_statistics_overall(season_id);
 -- CREATE INDEX idx_team_statistics_tournament ON public.team_statistics_overall(unique_tournament_id);
 ALTER TABLE public.team_statistics_overall OWNER TO postgres;
+
+
+CREATE TABLE public.unique_tournament(
+    unique_tournament_id integer,
+    country_id integer,
+    tournament_name character varying(255),
+    sport_id integer,
+    sport_name character varying(50)
+);
+
+ALTER TABLE public.unique_tournament OWNER TO postgres;
 
 --
 -- Name: match match_id_unique; Type: CONSTRAINT; Schema: public; Owner: postgres

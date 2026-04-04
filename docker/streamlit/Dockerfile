@@ -20,9 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt watchdog
 
-RUN mkdir -p /app/streamlit-app
+RUN mkdir -p /app/streamlit
 
-WORKDIR /app/streamlit-app
+WORKDIR /app/streamlit
 
 EXPOSE 8501
 
