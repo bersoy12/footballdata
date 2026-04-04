@@ -52,7 +52,7 @@ services:
       - TZ=Europe/Istanbul
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
@@ -72,44 +72,6 @@ services:
     volumes:
       - pgadmin4:/var/lib/pgadmin
       - ./docker/pgadmin4/servers.json:/pgadmin4/servers.json
-
-  # metabase:
-  #   # image: metabase/metabase:latest
-  #   build:
-  #     context: ./docker/metabase
-  #     dockerfile: Dockerfile
-  #   container_name: metabase
-  #   environment:
-  #     MB_DB_TYPE: postgres
-  #     MB_DB_DBNAME: metabase
-  #     MB_DB_PORT: 5432
-  #     MB_DB_USER: ${POSTGRES_USER}
-  #     MB_DB_PASS: ${POSTGRES_PASSWORD}
-  #     MB_DB_HOST: postgres
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - postgres
-  #   volumes:
-  #     - metabase_data:/metabase-data
-  
-  # streamlit:
-  #   container_name: streamlit
-  #   build:
-  #     context: ./docker/streamlit
-  #     dockerfile: Dockerfile
-  #   env_file:
-  #     - scripts/streamlit/.env
-  #   environment:
-  #     - WATCHDOG_TIMEOUT=60
-  #     - STREAMLIT_SERVER_WATCH_DIRS=true
-  #     - STREAMLIT_SERVER_HEADLESS=true
-  #     - STREAMLIT_SERVER_ENABLE_CORS=false
-  #     - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
-  #   ports:
-  #     - "8501:8501"
-  #   volumes:
-  #     - ./scripts/streamlit:/app/streamlit
 
   
   superset:
@@ -136,30 +98,8 @@ services:
         superset run -h 0.0.0.0 -p 8088
       "
 
-  mindsdb:
-    build:
-      context: ./docker/mindsdb
-      dockerfile: Dockerfile
-    container_name: mindsdb
-    ports:
-      - "47334:47334"  # HTTP API & Studio UI
-      - "47335:47335"  # MySQL wire protocol
-    environment:
-      - MINDSDB_STORAGE_DIR=/mindsdb/storage
-      - MINDSDB_DB_CON=${MINDSDB_URI}
-      - MINDSDB_SECRET_KEY=${MINDSDB_SECRET_KEY}
-    volumes:
-      - mindsdb_data:/mindsdb/storage
-    #   - ./docker/mindsdb/entrypoint.sh:/entrypoint.sh
-    # entrypoint: ["/bin/bash", "/entrypoint.sh"]
-    depends_on:
-      - postgres
-
-
 volumes:
   footballdata:
   pgadmin4:
   n8n_data:
   superset_home:
-  metabase_data:
-  mindsdb_data:
